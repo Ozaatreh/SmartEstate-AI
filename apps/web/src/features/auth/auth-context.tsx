@@ -60,8 +60,15 @@ export function RequireAuth() {
   return <Outlet />;
 }
 
-export function RequirePermission({ permission, children }: { permission: string; children: React.ReactNode }) {
-  const allowed = useCan(permission);
+/** UI gating only: true when the user holds any of the permissions. */
+export function useCanAny(permissions: readonly string[]): boolean {
+  const { can } = useAuth();
+  return permissions.some((p) => can(p));
+}
+
+/** ``permission`` may list alternatives — the page opens when the user holds any of them. */
+export function RequirePermission({ permission, children }: { permission: string | readonly string[]; children: React.ReactNode }) {
+  const allowed = useCanAny(typeof permission === "string" ? [permission] : permission);
   return allowed ? <>{children}</> : <PermissionState className="min-h-[60vh]" />;
 }
 

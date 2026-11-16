@@ -64,3 +64,50 @@ class NotifyIn(BaseModel):
 def notify_owner(ctx: ActionContext, data: NotifyIn) -> dict:
     svc = CRMService(ctx.session)
     return {"notified": svc.notify_owner(svc.lock(data.lead_id))}
+
+
+# --- Phase 5: follow-up SLA and reservation expiry ---------------------------------------------------
+class EscalateIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    max_leads: int = Field(default=200, ge=1, le=1000)
+
+
+@action(
+    "crm.escalate_overdue",
+    label="Escalate overdue follow-ups",
+    input_model=EscalateIn,
+    description="Escalates open leads whose follow-up date has passed to sales management and reminds the owner. "
+    "Deduplicated per lead per day.",
+)
+def escalate_overdue(ctx: ActionContext, data: EscalateIn) -> dict:
+    done = CRMService(ctx.session).escalate_overdue(limit=data.max_leads)
+    for d in done:
+        ctx.log.info(f"{d['code']}: follow-up overdue by {d['overdue_hours']} h — escalated (owner {d['owner']})")
+    if not done:
+        ctx.log.info("No new overdue follow-ups to escalate")
+    return {"escalated": len(done), "leads": [d["code"] for d in done]}
+
+
+class ExpireIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    batch_size: int = Field(default=200, ge=1, le=1000)
+
+
+@action(
+    "crm.expire_reservations",
+    label="Expire overdue reservations",
+    input_model=ExpireIn,
+    description="Expires active reservations past their expiry time, releases each unit and notifies the lead owner. "
+    "Converted or cancelled reservations are never touched.",
+)
+def expire_reservations(ctx: ActionContext, data: ExpireIn) -> dict:
+    from app.modules.crm.reservations import ReservationService
+
+    done = ReservationService(ctx.session).expire_due(limit=data.batch_size)
+    for d in done:
+        ctx.log.info(f"{d['code']}: expired; {d['unit']} released ({d['lead']})")
+    if not done:
+        ctx.log.info("No reservations due for expiry")
+    return {"expired": len(done), "reservations": [d["code"] for d in done]}

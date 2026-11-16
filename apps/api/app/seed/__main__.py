@@ -24,6 +24,7 @@ from app.modules.identity.models import Permission, Role, User
 from app.modules.identity.repository import IdentityRepository
 from app.modules.notifications.service import NotificationService
 from app.seed.demo_business import seed_demo_business
+from app.seed.demo_realestate import seed_demo_realestate
 from app.seed.reference import seed_reference
 
 # Fictional demo people (no real persons). Email domain .demo is not routable.
@@ -121,10 +122,14 @@ def run(settings: Settings | None = None) -> None:
             created = seed_demo_users(session, settings, roles)
         session.commit()
         business = settings.is_dev_like and seed_demo_business(session, settings.seed_admin_email.split("@", 1)[1])
+        inventory = seed_demo_realestate(session) if settings.is_dev_like else None
+        session.commit()
     print(
         f"Seed complete: {len(perms)} permissions, {len(roles)} roles, {policies} approval policies, {categories} budget categories, "
         f"{workflows} workflows, "
-        f"{created} demo accounts created" + ("; fictional demo organisation created." if business else ".")
+        f"{created} demo accounts created"
+        + ("; fictional demo organisation created." if business else ".")
+        + (f" Fictional NOVA inventory: {inventory['units']} units added." if inventory else "")
     )
     if not settings.is_dev_like:
         print("Demo accounts are skipped outside development/test.", file=sys.stderr)

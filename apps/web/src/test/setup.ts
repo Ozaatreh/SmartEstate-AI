@@ -13,3 +13,13 @@ if (!window.matchMedia) {
     }),
   });
 }
+
+// jsdom has no ResizeObserver; Radix primitives (checkbox, select) measure themselves with it.
+if (!("ResizeObserver" in globalThis)) {
+  class ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  Object.defineProperty(globalThis, "ResizeObserver", { value: ResizeObserverStub });
+}

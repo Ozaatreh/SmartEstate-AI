@@ -1,4 +1,7 @@
-"""Deterministic lead scoring (no AI). Every point carries a reason that is stored with the lead."""
+"""Deterministic lead scoring (no AI). Every point carries a reason that is stored with the lead.
+
+Phase 5 adds two rules — purchase timeline and budget fit against available inventory — computed only for
+new leads (existing leads keep the score they were registered with)."""
 
 from __future__ import annotations
 
@@ -7,6 +10,13 @@ from decimal import Decimal
 
 SOURCE_POINTS = {"referral": 25, "walk_in": 20, "property_assistant": 15, "website": 15, "campaign": 10, "phone": 10, "social": 5}
 HIGH_BUDGET = Decimal("1000000")
+TIMELINE_POINTS = {"immediate": 15, "within_3_months": 10, "within_6_months": 5, "over_6_months": 0}
+TIMELINE_LABELS = {
+    "immediate": "ready to buy now",
+    "within_3_months": "within 3 months",
+    "within_6_months": "within 6 months",
+    "over_6_months": "more than 6 months away",
+}
 
 
 @dataclass(frozen=True)
@@ -19,6 +29,8 @@ class LeadFacts:
     bedrooms_wanted: int | None
     consent: bool
     interest: bool
+    timeline: str | None = None
+    fitting_units: int | None = None  # available units within budget (None = no budget to compare)
 
 
 def score(facts: LeadFacts, *, hot_threshold: int = 70, warm_threshold: int = 40) -> tuple[int, str, list[dict[str, object]]]:
@@ -42,6 +54,16 @@ def score(facts: LeadFacts, *, hot_threshold: int = 70, warm_threshold: int = 40
         add(10, "Specific interest described")
     if facts.consent:
         add(10, "Consent to be contacted")
-    total = min(100, sum(int(r["points"]) for r in reasons))
+    if facts.timeline in TIMELINE_POINTS:
+        add(TIMELINE_POINTS[facts.timeline], f"Timeline: {TIMELINE_LABELS[facts.timeline]}")
+    if facts.fitting_units is not None:
+        n = facts.fitting_units
+        if n >= 3:
+            add(15, f"Budget fits {n} available units")
+        elif n > 0:
+            add(10, f"Budget fits {n} available unit{'s' if n > 1 else ''}")
+        else:
+            add(0, "No available units within budget")
+    total = max(0, min(100, sum(int(r["points"]) for r in reasons)))
     grade = "hot" if total >= hot_threshold else "warm" if total >= warm_threshold else "cold"
     return total, grade, reasons

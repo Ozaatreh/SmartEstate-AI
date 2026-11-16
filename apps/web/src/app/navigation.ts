@@ -1,5 +1,5 @@
 import {
-  Bell, Bot, Building2, CheckSquare, ClipboardCheck, FileText, FolderKanban, LayoutGrid, Palette, ScrollText, Truck, Users, Wallet, type LucideIcon,
+  Bell, Bot, Building, Building2, CalendarCheck, CheckSquare, ClipboardCheck, Contact, DoorOpen, FileText, FolderKanban, LayoutGrid, Palette, ScrollText, Truck, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem {
@@ -8,6 +8,8 @@ export interface NavItem {
   icon: LucideIcon;
   /** Hidden unless the user holds it (UI only — the API enforces). */
   permission?: string;
+  /** Hidden unless the user holds at least one of these. */
+  anyOf?: string[];
   /** Adds a live counter. */
   counter?: "notifications" | "approvals";
   end?: boolean;
@@ -32,13 +34,27 @@ export const NAVIGATION: NavSection[] = [
     ],
   },
   {
+    label: "Sales",
+    items: [
+      { label: "Leads", to: "/crm/leads", icon: Contact, anyOf: ["crm.leads.create", "crm.leads.work", "crm.leads.read_all"] },
+      { label: "Reservations", to: "/crm/reservations", icon: CalendarCheck, anyOf: ["crm.reservations.manage", "crm.leads.read_all"] },
+    ],
+  },
+  {
+    label: "Real estate",
+    items: [
+      { label: "Property Portfolio", to: "/realestate/projects", icon: Building, permission: "realestate.inventory.read" },
+      { label: "Units", to: "/realestate/units", icon: DoorOpen, permission: "realestate.inventory.read" },
+    ],
+  },
+  {
     label: "Operations",
     items: [
       { label: "Purchase requests", to: "/procurement/requests", icon: FileText, permission: "procurement.requests.create" },
       { label: "Purchase orders", to: "/procurement/orders", icon: ClipboardCheck, permission: "procurement.requests.create" },
       { label: "Suppliers", to: "/procurement/suppliers", icon: Truck, permission: "procurement.suppliers.read" },
       { label: "Budgets", to: "/finance/budgets", icon: Wallet, permission: "finance.budgets.read" },
-      { label: "Projects", to: "/finance/projects", icon: FolderKanban, permission: "finance.budgets.read" },
+      { label: "Operational Projects", to: "/finance/projects", icon: FolderKanban, permission: "finance.budgets.read" },
       { label: "Employees", to: "/hr/employees", icon: Users, permission: "hr.employees.read" },
       { label: "Departments", to: "/hr/departments", icon: Building2, permission: "hr.employees.read" },
       { label: "Automation", to: "/automation", icon: Bot, permission: "automation.workflows.read" },

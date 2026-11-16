@@ -61,6 +61,16 @@ export function formatRelative(value: string | Date | null | undefined, now: Dat
   const d = typeof value === "string" ? new Date(value) : value;
   const s = Math.round((now.getTime() - d.getTime()) / 1000);
   if (Number.isNaN(s)) return "—";
+  if (s <= -45) {
+    // Future times (follow-ups, reservation expiry): "in 30 min", "in 5 h", "in 2 d", then the date.
+    const fm = Math.round(-s / 60);
+    if (fm < 60) return `in ${fm} min`;
+    const fh = Math.round(fm / 60);
+    if (fh < 24) return `in ${fh} h`;
+    const fd = Math.round(fh / 24);
+    if (fd < 7) return `in ${fd} d`;
+    return formatDate(d);
+  }
   if (s < 45) return "just now";
   const m = Math.round(s / 60);
   if (m < 60) return `${m} min ago`;

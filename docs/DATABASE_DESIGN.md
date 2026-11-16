@@ -89,6 +89,8 @@ row, so two approvals cannot both spend the same remaining budget.
 
 ## 8. CRM (module: `crm`)
 
+> **As built (Phase 5, migrations `0006` real estate and `0007` CRM).** Every real-estate table also has `is_demo_data`; `re_payment_plans` adds `UNIQUE (project_id, name)` and `CHECK (down_payment_pct + handover_pct <= 100)`. `leads` keeps its Phase 3 columns (`grade`, `interest`, `notes`, `assigned_at`) and adds `project_id`, `interested_unit_id`, `timeline` (`immediate|within_3_months|within_6_months|over_6_months`), `last_activity_at`, `stage_changed_at`, `close_reason` (`CHECK stage NOT IN ('won','lost') OR close_reason IS NOT NULL`). `lead_activities` adds `reservation_id`; its types are `note|call|email|whatsapp|viewing|system|assignment|stage_change`; `unit_reservations` adds `code` (`RSV-00001`, sequence), cancel/convert/expire columns and CHECKs. `sales_assignment_state` is keyed by `pool` (project code, else `default`) instead of `project_id` (decision C3). Deposits are informational only — never posted to a ledger.
+
 | Table | Key columns | Constraints / notes |
 |---|---|---|
 | `leads` | code, project_id → re_projects, full_name, phone, email, preferred_language, source (`property_assistant|website|walk_in|referral|campaign|phone`), campaign_id → marketing_campaigns NULL, stage (`new|contacted|qualified|viewing|negotiation|won|lost`), score int, score_reasons JSONB, budget_min, budget_max, bedrooms_wanted, interested_unit_id → re_units NULL, owner_user_id → users NULL, consent_given_at, consent_text_version, last_activity_at, next_follow_up_at, ai_summary TEXT NULL | `CHECK (score BETWEEN 0 AND 100)`; `CHECK (phone IS NOT NULL OR email IS NOT NULL)`; index `(owner_user_id, stage)`, `(stage, next_follow_up_at)` |

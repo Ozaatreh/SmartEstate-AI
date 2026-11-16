@@ -214,6 +214,12 @@ def test_recovery_fails_execution_after_last_attempt(db, factory, wf_engine, mak
 
 
 def test_schedule_fires_once_per_slot(db, wf_engine):
+    # Isolate one scheduled workflow (Phase 5 added more schedules): the others' next slot is in the future.
+    db.execute(
+        update(WorkflowDefinition)
+        .where(WorkflowDefinition.key != "procurement.purchase_request_approval")
+        .values(next_run_at=func.now() + text("interval '1 hour'"))
+    )
     db.execute(update(WorkflowDefinition).where(WorkflowDefinition.key == "procurement.purchase_request_approval").values(next_run_at=None))
     db.commit()
     assert wf_engine.fire_schedules() == 1
@@ -302,12 +308,12 @@ def test_supplier_analysis_recommends_after_second_quotation(db, wf_engine, as_,
     as_("eng").post(f"/procurement/requests/{pr['id']}/submit")
     as_("buyer").post(f"/procurement/requests/{pr['id']}/quotations", quotation_body(pr, org.suppliers[0], ["95.00"], days=20))
     run(wf_engine, db)
-    first = executions(db, "procurement.supplier_analysis")[-1]
+    first = next(x for x in executions(db, "procurement.supplier_analysis") if x.result and x.result["analyse"]["quotations"] == 1)
     assert first.result["analyse"]["quotations"] == 1 and first.result["share"]["skipped"] is True
     assert "Only one quotation" in first.result["analyse"]["warnings"][0]
     as_("buyer").post(f"/procurement/requests/{pr['id']}/quotations", quotation_body(pr, org.suppliers[1], ["99.00"], days=2))
     run(wf_engine, db)
-    second = executions(db, "procurement.supplier_analysis")[-1]
+    second = next(x for x in executions(db, "procurement.supplier_analysis") if x.result and x.result["analyse"]["quotations"] == 2)
     analysis = second.result["analyse"]
     assert analysis["advisory"] is True and analysis["ranking"][0]["supplier"] == "Supplier 2"  # faster delivery outweighs a 4% price gap
     assert "above the lowest price" in analysis["recommendation"]

@@ -121,6 +121,8 @@ Tasks:
 Acceptance: creating a lead scores, assigns, notifies; overdue follow-up escalates on the next schedule run; double reservation is refused.
 Tests: scoring table cases, round-robin under concurrency, reservation uniqueness, agent sees only own leads.
 
+> **As built (D-17).** `realestate` module (projects, buildings, units, payment plans, availability grid, exact payment-plan breakdown; unit status `available ↔ blocked` by hand, `reserved`/`sold`/release only through reservations); CRM pipeline (updates, follow-ups, stage transitions with reasons, activities + timeline, manager reassignment, stats); reservations (partial unique index + unit row lock, 72 h default, cancel / convert / expire, atomic unit + lead changes); workflows `crm.follow_up_sla` and `crm.reservation_expiry` (the lead workflow keeps its Phase 3 key `crm.lead_registration`); screens for projects, availability, units, leads, lead detail, reservations. Migrations `0006`/`0007` are additive (permissions and grants included — no re-seed). Fictional NOVA inventory: `python -m app.seed.demo_realestate` (idempotent, insert-only). No AI (Phase 6).
+
 ## Phase 6 — AI Gateway, BI Agent & Property Assistant
 
 **Objective:** safe, grounded AI over real data.

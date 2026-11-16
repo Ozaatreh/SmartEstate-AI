@@ -25,6 +25,7 @@ from app.modules.identity.router import router as auth_router
 from app.modules.identity.throttle import IpThrottle
 from app.modules.notifications.router import router as notifications_router
 from app.modules.procurement.router import router as procurement_router  # also registers the purchase-request approval subject
+from app.modules.realestate.router import router as realestate_router
 
 log = logging.getLogger(__name__)
 API_PREFIX = "/api/v1"
@@ -74,7 +75,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         hr_router,
         finance_router,
         procurement_router,
-        approvals_router, crm_router, automation_router,
+        approvals_router, crm_router, automation_router, realestate_router,
     ):
         api.include_router(r)
     app.include_router(api)

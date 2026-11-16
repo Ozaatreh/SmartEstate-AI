@@ -16,7 +16,7 @@ from app.modules.approvals.models import (  # noqa: F401
     ApprovalStep,
 )
 from app.modules.audit.models import AuditLog  # noqa: F401
-from app.modules.crm.models import Lead, LeadActivity, SalesAssignmentState  # noqa: F401
+from app.modules.crm.models import Lead, LeadActivity, SalesAssignmentState, UnitReservation  # noqa: F401
 from app.modules.finance.models import Budget, BudgetCategory, BudgetLedgerEntry, OperationalProject  # noqa: F401
 from app.modules.hr.models import Department, Employee  # noqa: F401
 from app.modules.identity.models import Permission, Role, RolePermission, User, UserRole  # noqa: F401
@@ -30,3 +30,4 @@ from app.modules.procurement.models import (  # noqa: F401
     Supplier,
     SupplierQuotation,
 )
+from app.modules.realestate.models import ReBuilding, RePaymentPlan, ReProject, ReUnit  # noqa: F401

@@ -3,9 +3,17 @@
 AI-powered real estate business platform: internal operations, process automation, CRM and
 marketing, in one modular monolith. **Prototype.** NOVA Residences, Riyadh, and all demo data are fictional.
 
-**Status: Phase 4 (purchase orders from approved requests) complete.**
+**Status: Phase 5 (real estate inventory, CRM pipeline, reservations and CRM workflows) complete.**
 See [docs/](docs/) for the specification, architecture, database design, automation engine, UI/UX
 design system and plan.
+
+### Real estate & CRM (Phase 5)
+
+NOVA Residences and all its units, prices and payment plans are **fictional** (every screen shows *Illustrative / Fictional Demo Data*). Add the demo inventory to a development database with `.venv/Scripts/python -m app.seed.demo_realestate` — it only inserts what is missing and never changes existing rows.
+
+- **Leads:** `new → contacted → qualified → viewing → negotiation → won | lost` (forward moves; `lost` from any open stage; reopen only from `lost`; `won`/`lost` need a reason). New leads are scored by transparent rules (source, contact completeness, budget, high budget, bedrooms, interest, consent, **timeline**, **budget fit against available units**), assigned round-robin per project and get a 48-hour follow-up. `crm.follow_up_sla` escalates overdue follow-ups to sales managers once per lead per day.
+- **Reservations:** one active reservation per unit (database-enforced), 72 hours by default, optional informational deposit (no ledger posting). Reserving moves the unit to `reserved` and the lead to `negotiation`; cancel/expiry releases the unit; conversion sells it and wins the lead — all in one transaction. `crm.reservation_expiry` runs every 15 minutes.
+- **Permissions:** `realestate.inventory.read` (all staff), `realestate.inventory.manage` + `crm.leads.manage` (sales manager), `crm.reservations.manage` (sales agent for own leads, sales manager for all). Agents see only their own leads.
 
 ### Purchase orders (Phase 4) and where the budget is committed
 
@@ -126,7 +134,8 @@ Design and guarantees: [docs/AUTOMATION_ENGINE.md](docs/AUTOMATION_ENGINE.md).
 | Area | Endpoints |
 |---|---|
 | Automation | `GET /automation/overview`, `GET /automation/workflows`, `GET/PATCH /automation/workflows/{key}`, `POST /automation/workflows/{key}/run`, `GET /automation/executions`, `GET /automation/executions/{id}`, `POST …/{id}/retry`, `POST …/{id}/cancel` |
-| CRM (foundation) | `POST /crm/leads`, `GET /crm/leads`, `GET /crm/leads/{id}` |
+| CRM (Phase 5) | `POST /crm/leads`, `GET /crm/leads` (`scope=mine\|all, stage, owner_user_id, project_id, overdue, grade`), `GET /crm/leads/stats`, `GET/PATCH /crm/leads/{id}`, `POST …/{id}/stage` (`{stage, reason}`), `POST …/{id}/assign`, `GET/POST …/{id}/activities`, `GET /crm/sales-users`, `POST/GET /crm/reservations`, `GET /crm/reservations/{id}`, `POST …/{id}/cancel`, `POST …/{id}/convert`, `GET /crm/units/{id}/reservation` |
+| Real estate (Phase 5) | `GET/POST /realestate/projects`, `GET/PATCH /realestate/projects/{id}`, `GET …/{id}/availability`, `POST …/{id}/buildings`, `PATCH/DELETE /realestate/buildings/{id}`, `POST …/projects/{id}/payment-plans`, `PATCH /realestate/payment-plans/{id}`, `GET/POST /realestate/units` (filters: project, building, status, type, bedrooms, min_bedrooms, price range), `GET/PATCH/DELETE /realestate/units/{id}` |
 
 ### Phase 2 endpoints
 

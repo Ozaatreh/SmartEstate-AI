@@ -40,10 +40,15 @@ class Perm(StrEnum):
     APPROVALS_FINANCE = "approvals.finance.approve"
     APPROVALS_EXECUTIVE = "approvals.executive.approve"
     APPROVALS_READ_ALL = "approvals.requests.read_all"
-    # CRM (foundation; full CRM in Phase 5)
+    # CRM
     CRM_LEADS_CREATE = "crm.leads.create"
     CRM_LEADS_READ_ALL = "crm.leads.read_all"
     CRM_LEADS_WORK = "crm.leads.work"
+    CRM_LEADS_MANAGE = "crm.leads.manage"
+    CRM_RESERVATIONS_MANAGE = "crm.reservations.manage"
+    # Real estate inventory (Phase 5)
+    REALESTATE_INVENTORY_READ = "realestate.inventory.read"
+    REALESTATE_INVENTORY_MANAGE = "realestate.inventory.manage"
     # Automation
     AUTOMATION_WORKFLOWS_READ = "automation.workflows.read"
     AUTOMATION_WORKFLOWS_MANAGE = "automation.workflows.manage"
@@ -75,6 +80,10 @@ PERMISSION_DESCRIPTIONS: dict[Perm, str] = {
     Perm.CRM_LEADS_CREATE: "Register new leads",
     Perm.CRM_LEADS_READ_ALL: "View every lead",
     Perm.CRM_LEADS_WORK: "Receive and work assigned leads",
+    Perm.CRM_LEADS_MANAGE: "Reassign leads and work any lead (sales management)",
+    Perm.CRM_RESERVATIONS_MANAGE: "Reserve units for leads; cancel and convert reservations (own leads unless crm.leads.manage)",
+    Perm.REALESTATE_INVENTORY_READ: "View real estate projects, buildings, units and payment plans",
+    Perm.REALESTATE_INVENTORY_MANAGE: "Create and edit real estate projects, buildings, units and payment plans",
     Perm.AUTOMATION_WORKFLOWS_READ: "View workflows, executions and logs",
     Perm.AUTOMATION_WORKFLOWS_MANAGE: "Enable, disable and configure workflows",
     Perm.AUTOMATION_EXECUTIONS_OPERATE: "Retry, cancel and run workflow executions",
@@ -92,7 +101,7 @@ class RoleSpec:
 
 
 P = Perm
-_STAFF = {P.HR_EMPLOYEES_READ, P.PROCUREMENT_REQUESTS_CREATE}
+_STAFF = {P.HR_EMPLOYEES_READ, P.PROCUREMENT_REQUESTS_CREATE, P.REALESTATE_INVENTORY_READ}
 
 # Default roles (data; editable later).
 DEFAULT_ROLES: tuple[RoleSpec, ...] = (
@@ -179,10 +188,22 @@ DEFAULT_ROLES: tuple[RoleSpec, ...] = (
         "sales_manager",
         "Sales Manager",
         "Leads, assignment, escalations and reservations",
-        frozenset({*_STAFF, P.CRM_LEADS_CREATE, P.CRM_LEADS_READ_ALL}),
+        frozenset(
+            {
+                *_STAFF,
+                P.CRM_LEADS_CREATE,
+                P.CRM_LEADS_READ_ALL,
+                P.CRM_LEADS_MANAGE,
+                P.CRM_RESERVATIONS_MANAGE,
+                P.REALESTATE_INVENTORY_MANAGE,
+            }
+        ),
     ),
     RoleSpec(
-        "sales_agent", "Sales Agent", "Own leads, activities and reservations", frozenset({*_STAFF, P.CRM_LEADS_CREATE, P.CRM_LEADS_WORK})
+        "sales_agent",
+        "Sales Agent",
+        "Own leads, activities and reservations",
+        frozenset({*_STAFF, P.CRM_LEADS_CREATE, P.CRM_LEADS_WORK, P.CRM_RESERVATIONS_MANAGE}),
     ),
     RoleSpec("marketing_manager", "Marketing Manager", "Campaigns and AI content approval", frozenset({*_STAFF, P.CRM_LEADS_CREATE})),
     RoleSpec("employee", "Employee", "Own profile and own requests", frozenset(_STAFF)),

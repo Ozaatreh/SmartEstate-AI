@@ -32,7 +32,7 @@ def test_error_classification():
     assert classify(RuntimeError("boom"))[:2] == (False, "unexpected_error")
 
 
-def test_catalog_registers_four_workflows_with_known_actions():
+def test_catalog_registers_core_workflows_with_known_actions():
     workflows = load_catalog()
     core = {k: w for k, w in workflows.items() if not k.startswith("test.")}
     assert set(core) == {
@@ -40,6 +40,8 @@ def test_catalog_registers_four_workflows_with_known_actions():
         "finance.budget_validation",
         "procurement.supplier_analysis",
         "crm.lead_registration",
+        "crm.follow_up_sla",  # Phase 5
+        "crm.reservation_expiry",  # Phase 5
     }
     assert all(step.action in ACTIONS for w in core.values() for step in w.steps)
     assert ACTIONS["procurement.analyse_quotations"].advisory is True

@@ -22,6 +22,13 @@ const RequestFormPage = React.lazy(() => import("@/features/procurement/request-
 const RequestDetailPage = React.lazy(() => import("@/features/procurement/request-detail-page"));
 const OrdersPage = React.lazy(() => import("@/features/procurement/orders-page"));
 const OrderDetailPage = React.lazy(() => import("@/features/procurement/order-detail-page"));
+const RealEstateProjectsPage = React.lazy(() => import("@/features/realestate/projects-page"));
+const RealEstateProjectDetailPage = React.lazy(() => import("@/features/realestate/project-detail-page"));
+const UnitsPage = React.lazy(() => import("@/features/realestate/units-page"));
+const UnitDetailPage = React.lazy(() => import("@/features/realestate/unit-detail-page"));
+const LeadsPage = React.lazy(() => import("@/features/crm/leads-page"));
+const LeadDetailPage = React.lazy(() => import("@/features/crm/lead-detail-page"));
+const ReservationsPage = React.lazy(() => import("@/features/crm/reservations-page"));
 const SuppliersPage = React.lazy(() => import("@/features/procurement/suppliers-page"));
 const ApprovalsPage = React.lazy(() => import("@/features/approvals/approvals-page"));
 const AutomationPage = React.lazy(() => import("@/features/automation/automation-page"));
@@ -40,7 +47,8 @@ function PageFallback() {
 }
 
 const page = (el: React.ReactNode) => <React.Suspense fallback={<PageFallback />}>{el}</React.Suspense>;
-const guarded = (permission: string, el: React.ReactNode) => <RequirePermission permission={permission}>{page(el)}</RequirePermission>;
+const LEAD_READERS = ["crm.leads.create", "crm.leads.work", "crm.leads.read_all"] as const;
+const guarded = (permission: string | readonly string[], el: React.ReactNode) => <RequirePermission permission={permission}>{page(el)}</RequirePermission>;
 
 function Root() {
   return <AuthProvider><Outlet /></AuthProvider>;
@@ -71,10 +79,17 @@ export const router = createBrowserRouter([
               { path: "procurement/requests/:id/edit", element: guarded("procurement.requests.create", <RequestFormPage />), handle: { section: "Procurement", title: "Edit request" } },
               { path: "procurement/orders", element: guarded("procurement.requests.create", <OrdersPage />), handle: { section: "Procurement", title: "Purchase orders" } },
               { path: "procurement/orders/:id", element: page(<OrderDetailPage />), handle: { section: "Procurement", title: "Purchase order" } },
+              { path: "realestate/projects", element: guarded("realestate.inventory.read", <RealEstateProjectsPage />), handle: { section: "Real estate", title: "Property Portfolio" } },
+              { path: "realestate/projects/:id", element: guarded("realestate.inventory.read", <RealEstateProjectDetailPage />), handle: { section: "Real estate", title: "Project" } },
+              { path: "realestate/units", element: guarded("realestate.inventory.read", <UnitsPage />), handle: { section: "Real estate", title: "Units" } },
+              { path: "realestate/units/:id", element: guarded("realestate.inventory.read", <UnitDetailPage />), handle: { section: "Real estate", title: "Unit" } },
+              { path: "crm/leads", element: guarded(LEAD_READERS, <LeadsPage />), handle: { section: "Sales", title: "Leads" } },
+              { path: "crm/leads/:id", element: guarded(LEAD_READERS, <LeadDetailPage />), handle: { section: "Sales", title: "Lead" } },
+              { path: "crm/reservations", element: guarded(["crm.reservations.manage", "crm.leads.read_all"], <ReservationsPage />), handle: { section: "Sales", title: "Reservations" } },
               { path: "procurement/suppliers", element: guarded("procurement.suppliers.read", <SuppliersPage />), handle: { section: "Procurement", title: "Suppliers" } },
               { path: "finance/budgets", element: guarded("finance.budgets.read", <BudgetsPage />), handle: { section: "Finance", title: "Budgets" } },
               { path: "finance/budgets/:id", element: guarded("finance.budgets.read", <BudgetDetailPage />), handle: { section: "Finance", title: "Budget" } },
-              { path: "finance/projects", element: guarded("finance.budgets.read", <ProjectsPage />), handle: { section: "Finance", title: "Projects" } },
+              { path: "finance/projects", element: guarded("finance.budgets.read", <ProjectsPage />), handle: { section: "Finance", title: "Operational Projects" } },
               { path: "hr/employees", element: guarded("hr.employees.read", <EmployeesPage />), handle: { section: "People", title: "Employees" } },
               { path: "hr/employees/:id", element: guarded("hr.employees.read", <EmployeeProfilePage />), handle: { section: "People", title: "Employee" } },
               { path: "hr/departments", element: guarded("hr.employees.read", <DepartmentsPage />), handle: { section: "People", title: "Departments" } },

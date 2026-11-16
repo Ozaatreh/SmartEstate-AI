@@ -19,7 +19,7 @@
 | Logs | `wf_execution_logs` rows written in their own short transactions, so they survive failed steps. |
 | Retry from UI | Failed / cancelled executions get one more attempt (`max_attempts = attempt + 1`); completed steps are reused. Permission `automation.executions.operate`, audited. |
 
-**Workflows shipped:** `procurement.purchase_request_approval` (route check on `purchase_request.sent_for_approval`; reminders and reporting-line escalation every 15 min), `finance.budget_validation` (threshold and over-budget alerts on submit / send-for-approval / ledger change), `procurement.supplier_analysis` (advisory scoring on `purchase_request.quotation_added`), `crm.lead_registration` (score → round-robin assign → notify on `lead.created`). Events emitted by Phase 2 services: `purchase_request.{submitted, quotation_added, quotation_selected, sent_for_approval, approved, rejected, cancelled}`, `approval.{requested, decided}`, `budget.ledger_changed`, `lead.created`.
+**Workflows shipped:** `procurement.purchase_request_approval` (route check on `purchase_request.sent_for_approval`; reminders and reporting-line escalation every 15 min), `finance.budget_validation` (threshold and over-budget alerts on submit / send-for-approval / ledger change), `procurement.supplier_analysis` (advisory scoring on `purchase_request.quotation_added`), `crm.lead_registration` (score → round-robin assign → notify on `lead.created`; implements the roadmap's `crm.new_lead`). Phase 5 adds `crm.follow_up_sla` and `crm.reservation_expiry` (both every 15 min) and the events `lead.assigned`, `lead.stage_changed`, `lead.follow_up_overdue`, `reservation.{created, cancelled, converted, expired}` and `unit.status_changed` (payloads carry ids and codes only — never lead contact details). Events emitted by Phase 2 services: `purchase_request.{submitted, quotation_added, quotation_selected, sent_for_approval, approved, rejected, cancelled}`, `approval.{requested, decided}`, `budget.ledger_changed`, `lead.created`.
 
 ## 1. Principles
 
@@ -240,9 +240,9 @@ action (one service call). For example, "approve PO + write commitment" is one s
 | `procurement.pr_routing` | `purchase_request.submitted` | budget check → open approval by policy (over-budget adds tiers) → notify approvers | M |
 | `approvals.decision_notify` | `approval.decided` | notify requester → if a next step is open, notify its approvers. (The decision itself, including the final purchase-request approval → budget commitment (D-16), is applied **synchronously** in the approval service transaction, not by this workflow.) | M |
 | `finance.budget_threshold_alert` | `budget.ledger_changed` | if utilisation ≥ 80% / 100% (param) → notify finance manager (deduped per threshold) | M |
-| `crm.new_lead` | `lead.created` | deterministic score → round-robin assign → set follow-up due (48 h) → notify agent → AI summary (advisory, `continue` on error) | M |
-| `crm.follow_up_sla` | schedule 15 min | find overdue follow-ups → escalate to sales manager (deduped per lead per day) | M |
-| `crm.reservation_expiry` | schedule 15 min | expire reservations past `expires_at` → release unit → notify owner | S |
+| `crm.new_lead` — **shipped as `crm.lead_registration`** (key kept for execution history, decision C1) | `lead.created` | deterministic score (incl. timeline and budget fit, Phase 5) → round-robin assign (pool = project code, else `default`, decision C3) → set follow-up due (48 h) → notify agent. AI summary is Phase 6 (decision C4) | M |
+| `crm.follow_up_sla` (Phase 5) | schedule 15 min | action `crm.escalate_overdue`: open leads past `next_follow_up_at` → notify holders of `crm.leads.manage` + remind the owner (deduped per lead per day via activity / notification dedupe keys) | M |
+| `crm.reservation_expiry` (Phase 5) | schedule 15 min | action `crm.expire_reservations`: `FOR UPDATE SKIP LOCKED` on still-active reservations past `expires_at` → expire + release the unit in the same transaction → notify the lead owner; converted/cancelled rows are never touched | S |
 | `hr.leave_routing` | `leave_request.submitted` | open approval (department manager) → notify | S |
 | `marketing.content_review` | `marketing_content.submitted` | open approval (marketing manager) → notify | S |
 | `dashboard.daily_digest` | schedule daily | compute KPIs → AI narrative (advisory) → notify executives | C |

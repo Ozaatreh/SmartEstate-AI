@@ -13,7 +13,7 @@ export function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNa
   const unread = useUnreadCount();
   const approvals = usePendingApprovals();
   const counters = { notifications: unread.data?.unread, approvals: approvals.data?.pending };
-  const sections = NAVIGATION.map((s) => ({ ...s, items: s.items.filter((i) => !i.permission || can(i.permission)) })).filter((s) => s.items.length);
+  const sections = NAVIGATION.map((s) => ({ ...s, items: s.items.filter((i) => (!i.permission || can(i.permission)) && (!i.anyOf || i.anyOf.some((p) => can(p)))) })).filter((s) => s.items.length);
 
   return (
     <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-3">

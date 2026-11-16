@@ -41,7 +41,24 @@ const STATUS_TONES: Record<string, Tone> = {
   normal: "info",
   high: "warning",
   urgent: "danger",
-  // real estate (later phases)
+  // CRM pipeline & reservations (Phase 5)
+  new: "info",
+  contacted: "info",
+  qualified: "brand",
+  viewing: "brand",
+  negotiation: "warning",
+  won: "success",
+  lost: "neutral",
+  expired: "neutral",
+  converted: "success",
+  hot: "danger",
+  warm: "warning",
+  cold: "info",
+  // real estate projects
+  launched: "success",
+  under_construction: "info",
+  planning: "neutral",
+  // real estate units
   available: "success",
   reserved: "warning",
   sold: "brand",

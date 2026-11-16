@@ -26,7 +26,7 @@ from app.main import create_app
 from app.modules.identity.models import Role, User
 from app.seed.__main__ import sync_permissions, sync_roles
 
-pytest_plugins = ["tests.business_fixtures"]
+pytest_plugins = ["tests.business_fixtures", "tests.realestate_fixtures"]
 
 API_ROOT = Path(__file__).resolve().parents[1]
 TEST_PASSWORD = "Correct-Horse-Battery-9"

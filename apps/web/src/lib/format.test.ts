@@ -25,6 +25,9 @@ describe("other formatters", () => {
     const now = new Date("2026-11-16T12:00:00Z");
     expect(formatRelative("2026-11-16T11:59:40Z", now)).toBe("just now");
     expect(formatRelative("2026-11-16T09:00:00Z", now)).toBe("3 h ago");
+    expect(formatRelative("2026-11-16T12:30:00Z", now)).toBe("in 30 min");
+    expect(formatRelative("2026-11-18T12:00:00Z", now)).toBe("in 2 d");
+    expect(formatRelative("2026-11-16T12:00:30Z", now)).toBe("just now");
   });
   it("status tones are consistent", () => {
     expect(toneFor("pending_approval")).toBe("warning");

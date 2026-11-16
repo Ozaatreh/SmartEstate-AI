@@ -1,4 +1,4 @@
-"""The four initial workflows. Each composes registered actions; thresholds come from editable parameters."""
+"""Workflows (four from Phase 3, two from Phase 5). Each composes registered actions; thresholds come from editable parameters."""
 
 from __future__ import annotations
 
@@ -218,8 +218,9 @@ class LeadRegistration(Workflow):
     key = "crm.lead_registration"
     name = "Lead Registration"
     description = (
-        "Scores every new lead with transparent rules, assigns it round-robin to the sales team, sets a follow-up deadline "
-        "and notifies the new owner."
+        "Scores every new lead with transparent rules (incl. timeline and budget fit against available units), assigns it "
+        "round-robin to the sales team (one rotation per project), sets a follow-up deadline and notifies the new owner. "
+        "Implements the roadmap's crm.new_lead workflow (key kept for execution history, decision C1)."
     )
     category = "CRM"
     entity_type = "lead"
@@ -253,4 +254,40 @@ class LeadRegistration(Workflow):
             when=step_output_truthy("assign", "newly_assigned", "The lead was just assigned"),
             on_error="continue",
         ),
+    )
+
+
+@register_workflow
+class FollowUpSLA(Workflow):
+    key = "crm.follow_up_sla"
+    name = "Lead Follow-up SLA"
+    description = (
+        "Every 15 minutes, finds open leads whose follow-up date has passed (48 h after assignment by default) and escalates "
+        "them to the sales managers, with a reminder to the owner. Each lead is escalated at most once per day."
+    )
+    category = "CRM"
+    entity_type = "lead"
+    triggers = (ScheduleTrigger(every_minutes=15),)
+    parameters = {
+        "max_leads": ParamSpec("int", 200, "Leads per run", "Upper bound of escalations in one run.", 1, 1000, "leads"),
+    }
+    steps = (Step("escalate", "crm.escalate_overdue", "Escalate overdue follow-ups", lambda c: {"max_leads": c.parameters["max_leads"]}),)
+
+
+@register_workflow
+class ReservationExpiry(Workflow):
+    key = "crm.reservation_expiry"
+    name = "Reservation Expiry"
+    description = (
+        "Every 15 minutes, expires reservations that are still active after their expiry time, releases the unit back to "
+        "available in the same transaction and notifies the lead owner. Converted or cancelled reservations are never touched."
+    )
+    category = "CRM"
+    entity_type = "unit_reservation"
+    triggers = (ScheduleTrigger(every_minutes=15),)
+    parameters = {
+        "batch_size": ParamSpec("int", 200, "Reservations per run", "Upper bound of expiries in one run.", 1, 1000, "reservations"),
+    }
+    steps = (
+        Step("expire", "crm.expire_reservations", "Expire overdue reservations", lambda c: {"batch_size": c.parameters["batch_size"]}),
     )
