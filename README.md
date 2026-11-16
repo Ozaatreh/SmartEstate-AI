@@ -3,13 +3,24 @@
 AI-powered real estate business platform: internal operations, process automation, CRM and
 marketing, in one modular monolith. **Prototype.** NOVA Residences, Riyadh, and all demo data are fictional.
 
-**Status: Phase 3 (Python automation engine + worker, four workflows, Automation UI) complete.**
+**Status: Phase 4 (purchase orders from approved requests) complete.**
 See [docs/](docs/) for the specification, architecture, database design, automation engine, UI/UX
 design system and plan.
 
+### Purchase orders (Phase 4) and where the budget is committed
+
+**Deliberate deviation (D-16):** the budget is committed **once, at the purchase request's final approval**, not at
+purchase-order approval. Procurement (`procurement.orders.manage`) creates a PO from a fully approved request; supplier,
+lines, quantities and agreed prices are copied from the selected quotation, so the PO total always equals the commitment.
+`draft → issued → cancelled`, no second approval chain, and creating or issuing a PO writes nothing to the ledger. One active PO
+per request (database-enforced). Cancelling asks what happens to the budget: **release** (one release entry, the request becomes
+`closed`; refused while another active PO needs the commitment) or **keep** (commitment stays, a replacement PO can be created and
+is linked to the cancelled one). Requests approved before Phase 4 keep their commitments untouched until one of their orders is
+cancelled with release.
+
 ### Purchase-request lifecycle (Phase 2)
 
-`draft → sourcing → pending_approval → approved | rejected` (or `cancelled` before approval).
+`draft → sourcing → pending_approval → approved | rejected` (or `cancelled` before approval; `approved → closed` when its PO is cancelled with budget release).
 The employee creates the request (budget checked live). Submitting resolves the department or project budget, and
 procurement then records supplier quotations and selects one. Sending it for approval routes it by amount (D-11: ≤ SAR 50k
 department manager · ≤ 250k + finance · above + executive; over-budget always adds finance and executive, D-8).
@@ -124,6 +135,7 @@ Design and guarantees: [docs/AUTOMATION_ENGINE.md](docs/AUTOMATION_ENGINE.md).
 | HR | `GET/POST /hr/departments`, `GET/PATCH /hr/departments/{id}`, `GET/POST /hr/employees`, `GET/PATCH /hr/employees/{id}` |
 | Finance | `GET /finance/categories`, `GET/POST /finance/projects`, `GET/PATCH /finance/projects/{id}`, `GET /finance/budgets/summary`, `GET/POST /finance/budgets`, `GET/PATCH /finance/budgets/{id}` (includes ledger) |
 | Procurement | `GET/POST /procurement/suppliers`, `GET /procurement/suppliers/categories`, `GET/PATCH /procurement/suppliers/{id}`, `GET/POST /procurement/requests`, `GET /procurement/requests/stats`, `POST /procurement/requests/budget-preview`, `GET/PATCH /procurement/requests/{id}`, `GET …/{id}/activity`, `POST …/{id}/submit`, `POST …/{id}/cancel`, `POST …/{id}/send-for-approval`, `POST …/{id}/quotations`, `PUT/DELETE …/{id}/quotations/{qid}`, `POST …/{id}/quotations/{qid}/select` |
+| Purchase orders (Phase 4) | `POST /procurement/requests/{id}/purchase-orders`, `GET /procurement/purchase-orders` (`q, sort, page, page_size, status, request_id`), `GET/PATCH /procurement/purchase-orders/{id}`, `POST …/{id}/issue`, `POST …/{id}/cancel` (`{reason, release_budget}`) |
 | Approvals | `GET /approvals?box=pending\|decided\|mine\|all`, `GET /approvals/pending-count`, `GET /approvals/policies`, `GET /approvals/{id}`, `POST /approvals/{id}/approve`, `POST /approvals/{id}/reject` (comment required) |
 
 Interactive docs: <http://127.0.0.1:8000/docs> (disabled in production).

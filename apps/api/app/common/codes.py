@@ -11,6 +11,7 @@ SEQUENCES = {
     "supplier": ("supplier_code_seq", "SUP-", 5),
     "purchase_request": ("purchase_request_code_seq", "PR-", 5),
     "lead": ("lead_code_seq", "LEAD-", 5),
+    "purchase_order": ("purchase_order_code_seq", "PO-", 5),
 }
 
 

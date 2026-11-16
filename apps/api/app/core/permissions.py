@@ -34,6 +34,7 @@ class Perm(StrEnum):
     PROCUREMENT_REQUESTS_CREATE = "procurement.requests.create"
     PROCUREMENT_REQUESTS_READ_ALL = "procurement.requests.read_all"
     PROCUREMENT_QUOTATIONS_MANAGE = "procurement.quotations.manage"
+    PROCUREMENT_ORDERS_MANAGE = "procurement.orders.manage"
     # Approvals (one permission per approval level; the department level is normally assigned to the manager)
     APPROVALS_DEPARTMENT = "approvals.department.approve"
     APPROVALS_FINANCE = "approvals.finance.approve"
@@ -66,6 +67,7 @@ PERMISSION_DESCRIPTIONS: dict[Perm, str] = {
     Perm.PROCUREMENT_REQUESTS_CREATE: "Create and submit own purchase requests",
     Perm.PROCUREMENT_REQUESTS_READ_ALL: "View every purchase request",
     Perm.PROCUREMENT_QUOTATIONS_MANAGE: "Record supplier quotations, select a supplier and send requests for approval",
+    Perm.PROCUREMENT_ORDERS_MANAGE: "Create, issue and cancel purchase orders for approved requests",
     Perm.APPROVALS_DEPARTMENT: "Approve at department level when no department manager is available",
     Perm.APPROVALS_FINANCE: "Approve at finance level",
     Perm.APPROVALS_EXECUTIVE: "Approve at executive level",
@@ -168,6 +170,7 @@ DEFAULT_ROLES: tuple[RoleSpec, ...] = (
                 P.PROCUREMENT_SUPPLIERS_MANAGE,
                 P.PROCUREMENT_REQUESTS_READ_ALL,
                 P.PROCUREMENT_QUOTATIONS_MANAGE,
+                P.PROCUREMENT_ORDERS_MANAGE,
                 P.AUTOMATION_WORKFLOWS_READ,
             }
         ),

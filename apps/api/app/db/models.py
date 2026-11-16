@@ -22,6 +22,8 @@ from app.modules.hr.models import Department, Employee  # noqa: F401
 from app.modules.identity.models import Permission, Role, RolePermission, User, UserRole  # noqa: F401
 from app.modules.notifications.models import Notification  # noqa: F401
 from app.modules.procurement.models import (  # noqa: F401
+    PurchaseOrder,
+    PurchaseOrderLine,
     PurchaseRequest,
     PurchaseRequestItem,
     QuotationItem,

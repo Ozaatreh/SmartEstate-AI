@@ -1,5 +1,5 @@
 import {
-  Bell, Bot, Building2, CheckSquare, FileText, FolderKanban, LayoutGrid, Palette, ScrollText, Truck, Users, Wallet, type LucideIcon,
+  Bell, Bot, Building2, CheckSquare, ClipboardCheck, FileText, FolderKanban, LayoutGrid, Palette, ScrollText, Truck, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem {
@@ -35,6 +35,7 @@ export const NAVIGATION: NavSection[] = [
     label: "Operations",
     items: [
       { label: "Purchase requests", to: "/procurement/requests", icon: FileText, permission: "procurement.requests.create" },
+      { label: "Purchase orders", to: "/procurement/orders", icon: ClipboardCheck, permission: "procurement.requests.create" },
       { label: "Suppliers", to: "/procurement/suppliers", icon: Truck, permission: "procurement.suppliers.read" },
       { label: "Budgets", to: "/finance/budgets", icon: Wallet, permission: "finance.budgets.read" },
       { label: "Projects", to: "/finance/projects", icon: FolderKanban, permission: "finance.budgets.read" },

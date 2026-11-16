@@ -1,5 +1,5 @@
 import {
-  Award, Ban, Building2, CalendarClock, Check, CheckCircle2, FolderKanban, Pencil, Plus, Send, Timer, Trash2, Truck, UserRound, XCircle,
+  Award, Ban, Building2, CalendarClock, Check, CheckCircle2, ClipboardCheck, FilePlus2, FolderKanban, Pencil, Plus, Send, Timer, Trash2, Truck, UserRound, XCircle,
 } from "lucide-react";
 import * as React from "react";
 import { Link, useParams } from "react-router-dom";
@@ -21,6 +21,7 @@ import { formatDate, formatDateTime, formatMoney, formatRelative } from "@/lib/f
 import { humanize } from "@/lib/status";
 import { cn } from "@/lib/utils";
 import { useQuotationMutations, useRequest, useRequestAction, useRequestActivity, type PurchaseRequestDetail, type Quotation } from "./api";
+import { OrderFormDialog } from "./order-dialogs";
 import { QuotationDialog } from "./quotation-dialog";
 
 const ACTION_LABELS: Record<string, string> = {
@@ -39,6 +40,10 @@ const ACTION_LABELS: Record<string, string> = {
   "approval.step_approved": "approved a step",
   "approval.rejected": "rejected it",
   "approval.completed": "gave final approval",
+  "purchase_request.order_created": "drafted a purchase order",
+  "purchase_request.order_issued": "issued the purchase order",
+  "purchase_request.order_cancelled": "cancelled a purchase order",
+  "purchase_request.closed": "released the budget and closed the request",
 };
 
 const STAGES = [
@@ -63,6 +68,7 @@ function RequestDetail({ pr }: { pr: PurchaseRequestDetail }) {
   const [cancelling, setCancelling] = React.useState(false);
   const [confirmSend, setConfirmSend] = React.useState(false);
   const [quote, setQuote] = React.useState<Quotation | "new" | null>(null);
+  const [ordering, setOrdering] = React.useState(false);
   const can = (a: string) => pr.allowed_actions.includes(a);
   const [tab, setTab] = React.useState(pr.status === "sourcing" && can("manage_quotations") ? "quotations" : "overview");
 
@@ -80,7 +86,7 @@ function RequestDetail({ pr }: { pr: PurchaseRequestDetail }) {
         title={pr.title}
         status={pr.status}
         amount={pr.approved_total ?? pr.estimated_total}
-        amountLabel={pr.approved_total ? (pr.status === "approved" ? "Approved amount" : "Selected quotation") : "Estimated total"}
+        amountLabel={pr.approved_total ? (pr.status === "approved" || pr.status === "closed" ? "Approved amount" : "Selected quotation") : "Estimated total"}
         meta={<>
           <MetaItem icon={<UserRound />}>{pr.requester.full_name}</MetaItem>
           <MetaItem icon={pr.project ? <FolderKanban /> : <Building2 />}>{pr.project ? `${pr.project.code} · ${pr.project.name}` : pr.department.name}</MetaItem>
@@ -95,6 +101,7 @@ function RequestDetail({ pr }: { pr: PurchaseRequestDetail }) {
           {can("send_for_approval") && <Button variant="primary" onClick={() => setConfirmSend(true)}><Send /> Send for approval</Button>}
           {can("reject") && <Button variant="danger" onClick={() => setDecision("reject")}><XCircle /> Reject</Button>}
           {can("approve") && <Button variant="primary" onClick={() => setDecision("approve")}><CheckCircle2 /> Approve</Button>}
+          {can("create_purchase_order") && <Button variant="primary" onClick={() => setOrdering(true)}><FilePlus2 /> {pr.purchase_orders.length ? "Create replacement order" : "Create purchase order"}</Button>}
         </>}
       />
 
@@ -107,6 +114,11 @@ function RequestDetail({ pr }: { pr: PurchaseRequestDetail }) {
       )}
       {pr.status === "cancelled" && pr.cancel_reason && (
         <p className="mb-6 rounded-[var(--radius-panel)] border border-border bg-surface-subtle px-4 py-3 text-body text-fg-secondary">Cancelled: “{pr.cancel_reason}”</p>
+      )}
+      {pr.status === "closed" && (
+        <p className="mb-6 rounded-[var(--radius-panel)] border border-border bg-surface-subtle px-4 py-3 text-body text-fg-secondary">
+          Closed: the purchase order was cancelled and the committed budget was released. No further orders can be created.
+        </p>
       )}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -130,7 +142,8 @@ function RequestDetail({ pr }: { pr: PurchaseRequestDetail }) {
         </Tabs>
 
         <aside className="space-y-4">
-          <Panel title="Budget impact" description={pr.budget_impact.committed_by_this_request ? "Committed on approval" : "Checked live against the budget"}>
+          {(pr.status === "approved" || pr.status === "closed") && <OrdersPanel pr={pr} />}
+          <Panel title="Budget impact" description={pr.status === "closed" ? "Committed on approval, released when the order was cancelled" : pr.budget_impact.committed_by_this_request ? "Committed on approval" : "Checked live against the budget"}>
             <div className="p-4"><BudgetImpactCard impact={{ ...pr.budget_impact, budgetLink: canReadBudgets && pr.budget_impact.budget_id ? `/finance/budgets/${pr.budget_impact.budget_id}` : null }} compact /></div>
           </Panel>
           <Panel title="Approval" description={pr.approval ? pr.approval.policy_name : "Starts when procurement sends the request"}>
@@ -157,6 +170,7 @@ function RequestDetail({ pr }: { pr: PurchaseRequestDetail }) {
       {decision && pr.approval && <DecisionDialog approval={pr.approval} decision={decision} onClose={() => setDecision(null)} />}
       {quote && <QuotationDialog request={pr} quotation={quote === "new" ? undefined : quote} onClose={() => setQuote(null)} />}
       {cancelling && <CancelDialog pr={pr} onClose={() => setCancelling(false)} />}
+      {ordering && <OrderFormDialog request={pr} onClose={() => setOrdering(false)} />}
       <ConfirmDialog open={confirmSend} onOpenChange={setConfirmSend} loading={action.isPending} onConfirm={() => run("send-for-approval", `${pr.code} sent for approval`)}
         title={`Send ${pr.code} for approval?`} confirmLabel="Send for approval"
         description={selected ? <>
@@ -170,12 +184,13 @@ function RequestDetail({ pr }: { pr: PurchaseRequestDetail }) {
 
 function LifecycleStepper({ status }: { status: string }) {
   const terminal = status === "rejected" || status === "cancelled";
+  const finished = status === "approved" || status === "closed";
   const idx = STAGES.findIndex((s) => s.key === status);
   return (
     <ol className="mb-6 flex items-center gap-2 overflow-x-auto rounded-[var(--radius-panel)] border border-border bg-surface px-4 py-3 [scrollbar-width:none]" aria-label="Request progress">
       {STAGES.map((s, i) => {
-        const done = !terminal && (i < idx || status === "approved");
-        const current = !terminal && i === idx && status !== "approved";
+        const done = !terminal && (i < idx || finished);
+        const current = !terminal && i === idx && !finished;
         return (
           <li key={s.key} className="flex shrink-0 items-center gap-2">
             {i > 0 && <span aria-hidden className={cn("h-px w-6 sm:w-12", done || current ? "bg-success/50" : "bg-border")} />}
@@ -187,7 +202,7 @@ function LifecycleStepper({ status }: { status: string }) {
           </li>
         );
       })}
-      {terminal && <li className="ml-auto shrink-0 pl-4"><StatusBadge status={status} /></li>}
+      {(terminal || status === "closed") && <li className="ml-auto shrink-0 pl-4"><StatusBadge status={status} /></li>}
     </ol>
   );
 }
@@ -324,6 +339,32 @@ function QuotationsPanel({ pr, onAdd, onEdit }: { pr: PurchaseRequestDetail; onA
         description={removing?.status === "selected" ? "It is currently selected; you'll need to select another quotation." : "You can record it again later."}
         onConfirm={() => removing && remove.mutate(removing.id, { onSuccess: () => { toast.success("Quotation removed"); setRemoving(null); } })} />
     </>
+  );
+}
+
+function OrdersPanel({ pr }: { pr: PurchaseRequestDetail }) {
+  const orders = pr.purchase_orders;
+  return (
+    <Panel title="Purchase orders" description="The budget stays committed once for this request">
+      {orders.length === 0 ? (
+        <EmptyState icon={<ClipboardCheck className="size-5" />} title="No purchase order yet"
+          description={pr.allowed_actions.includes("create_purchase_order") ? "Create the order from the approved quotation." : "Procurement creates the order from the approved quotation."} />
+      ) : (
+        <ul className="divide-y divide-border-subtle">
+          {orders.map((o) => (
+            <li key={o.id}>
+              <Link to={`/procurement/orders/${o.id}`} className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-surface-subtle">
+                <span className="min-w-0">
+                  <span className="tabular block text-small font-medium">{o.code}</span>
+                  <span className="block truncate text-caption text-fg-muted">{o.supplier}{o.status === "cancelled" ? (o.budget_released ? " · budget released" : " · budget kept") : ""}</span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-1"><StatusBadge status={o.status} /><MoneyText value={o.total_amount} decimals={2} className="text-small" /></span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
   );
 }
 

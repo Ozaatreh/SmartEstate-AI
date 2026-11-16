@@ -22,6 +22,7 @@ const STATUS_CHIPS = [
   { key: "pending_approval", label: "In approval" },
   { key: "approved", label: "Approved" },
   { key: "rejected", label: "Rejected" },
+  { key: "closed", label: "Closed" },
 ] as const;
 
 export default function RequestsPage() {
@@ -76,7 +77,7 @@ export default function RequestsPage() {
         </Tabs>
       )}
 
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {STATUS_CHIPS.map((c) => {
           const active = state.filters.status === c.key;
           const count = s?.[c.key];

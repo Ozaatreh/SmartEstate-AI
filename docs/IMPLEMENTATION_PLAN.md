@@ -96,6 +96,13 @@ Tests: policy band selection, self-approval refusal, engine idempotency, retry c
 Tasks: suppliers CRUD; PR with lines (Decimal totals); submit → `procurement.pr_routing`; PO from approved PR;
 PO approval commits budget in the same transaction; PO cancel releases; screens for all of it.
 
+> **As built (D-16, approved before Phase 4).** Suppliers, PRs, quotations, approvals and the budget commitment were
+> delivered in Phase 2, with the commitment at the PR's **final approval**. Phase 4 therefore delivered purchase orders only:
+> created from a fully approved PR (selected supplier, lines, quantities and agreed prices copied from the quotation),
+> lifecycle `draft → issued → cancelled`, no second approval chain, no ledger entry on create/issue, one active PO per PR
+> (partial unique index + row lock), cancel = release once and close the PR (`closed`) **or** keep the commitment for a linked
+> replacement PO. Expenses and leave are not part of this phase. Migration `0005` is additive (no reset or reseed).
+
 Acceptance: spec § 9 criteria 3 and 4.
 Tests: line maths, over-budget routing to extra tiers, commit/release ledger entries, permission and scoping.
 

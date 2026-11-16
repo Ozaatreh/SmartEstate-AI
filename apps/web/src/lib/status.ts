@@ -32,6 +32,7 @@ const STATUS_TONES: Record<string, Tone> = {
   selected: "success",
   not_selected: "neutral",
   closed: "neutral",
+  issued: "info",
   // projects
   planned: "info",
   on_hold: "warning",

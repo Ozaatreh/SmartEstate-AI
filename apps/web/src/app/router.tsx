@@ -20,6 +20,8 @@ const ProjectsPage = React.lazy(() => import("@/features/finance/projects-page")
 const RequestsPage = React.lazy(() => import("@/features/procurement/requests-page"));
 const RequestFormPage = React.lazy(() => import("@/features/procurement/request-form-page"));
 const RequestDetailPage = React.lazy(() => import("@/features/procurement/request-detail-page"));
+const OrdersPage = React.lazy(() => import("@/features/procurement/orders-page"));
+const OrderDetailPage = React.lazy(() => import("@/features/procurement/order-detail-page"));
 const SuppliersPage = React.lazy(() => import("@/features/procurement/suppliers-page"));
 const ApprovalsPage = React.lazy(() => import("@/features/approvals/approvals-page"));
 const AutomationPage = React.lazy(() => import("@/features/automation/automation-page"));
@@ -67,6 +69,8 @@ export const router = createBrowserRouter([
               { path: "procurement/requests/new", element: guarded("procurement.requests.create", <RequestFormPage />), handle: { section: "Procurement", title: "New request" } },
               { path: "procurement/requests/:id", element: page(<RequestDetailPage />), handle: { section: "Procurement", title: "Purchase request" } },
               { path: "procurement/requests/:id/edit", element: guarded("procurement.requests.create", <RequestFormPage />), handle: { section: "Procurement", title: "Edit request" } },
+              { path: "procurement/orders", element: guarded("procurement.requests.create", <OrdersPage />), handle: { section: "Procurement", title: "Purchase orders" } },
+              { path: "procurement/orders/:id", element: page(<OrderDetailPage />), handle: { section: "Procurement", title: "Purchase order" } },
               { path: "procurement/suppliers", element: guarded("procurement.suppliers.read", <SuppliersPage />), handle: { section: "Procurement", title: "Suppliers" } },
               { path: "finance/budgets", element: guarded("finance.budgets.read", <BudgetsPage />), handle: { section: "Finance", title: "Budgets" } },
               { path: "finance/budgets/:id", element: guarded("finance.budgets.read", <BudgetDetailPage />), handle: { section: "Finance", title: "Budget" } },

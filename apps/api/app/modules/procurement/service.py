@@ -288,6 +288,7 @@ class ProcurementService:
             draft=get("draft")[0],
             sourcing=get("sourcing")[0],
             pending_approval=get("pending_approval")[0],
+            closed=get("closed")[0],
             approved=get("approved")[0],
             rejected=get("rejected")[0],
             cancelled=get("cancelled")[0],
@@ -320,6 +321,11 @@ class ProcurementService:
             else None,
         )
         actions = self._allowed_actions(principal, pr)
+        from app.modules.procurement.orders import OrderService
+
+        orders = OrderService(self.session)
+        if orders.can_create(principal, pr):
+            actions.append("create_purchase_order")
         if approval_detail and approval_detail.allowed_actions:
             actions += approval_detail.allowed_actions
         return RequestDetail(
@@ -336,6 +342,7 @@ class ProcurementService:
             allowed_actions=actions,
             cancel_reason=pr.cancel_reason,
             sent_for_approval_at=pr.sent_for_approval_at,
+            purchase_orders=orders.summaries_for_request(pr.id),
         )
 
     def _allowed_actions(self, principal: Principal, pr: PurchaseRequest) -> list[str]:

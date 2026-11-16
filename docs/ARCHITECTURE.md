@@ -126,7 +126,7 @@ UI/UX quality is a **core requirement** (see [UI_UX_DESIGN.md](UI_UX_DESIGN.md) 
    `approvals.ApprovalService.open_request()`.
 3. Cross-module side effects that do not need to be in the same transaction go through
    **events** handled by the automation engine (for example, notify an approver).
-   Effects that must be atomic (PO approval → budget commitment) are direct service calls inside
+   Effects that must be atomic (final purchase-request approval → budget commitment, D-16; PO cancel → release) are direct service calls inside
    one transaction.
 4. Dependencies point one way (see § 9). Shared kernels (`core`, `db`, `identity`, `audit`,
    `notifications`) depend on no business module.
@@ -358,3 +358,4 @@ core, db ──▶ identity ──▶ audit, notifications
 | D-13 | Demo hosting | Local only (README + demo script) | If the assessor needs a hosted URL, plan changes |
 | D-14 | Property imagery for fictional NOVA Residences | Freely licensed architectural stock photos (Unsplash licence), stored locally in the repo, each labelled "Illustrative image"; you can swap in your own renders | Real photos of real buildings would misrepresent a fictional project; downloading assets needs your OK |
 | D-15 | Visual identity | "Najd" palette (ink navy + desert-clay accent + a restrained AI violet), Inter for UI, Fraunces for property display headings, IBM Plex Sans Arabic for Arabic content (UI_UX_DESIGN.md § 2) | Brand taste is yours |
+| D-16 | Where the budget commitment happens (**approved before Phase 4 — deliberate deviation**) | Commit once at the purchase request's **final approval** (built in Phase 2), not at PO approval. POs (`draft → issued → cancelled`) have no approval chain and never commit; cancelling one either releases the request's commitment exactly once (ledger key `purchase_request:<id>:release`) and closes the request, or keeps it for a replacement PO | Resolved: avoids a second approval chain and a duplicate commitment; existing approved requests keep their commitments untouched |

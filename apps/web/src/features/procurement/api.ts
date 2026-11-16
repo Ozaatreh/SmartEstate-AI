@@ -109,6 +109,7 @@ export interface PurchaseRequestDetail extends PurchaseRequest {
   allowed_actions: string[];
   cancel_reason: string | null;
   sent_for_approval_at: string | null;
+  purchase_orders: OrderSummary[];
 }
 
 export interface RequestStats {
@@ -118,6 +119,7 @@ export interface RequestStats {
   approved: number;
   rejected: number;
   cancelled: number;
+  closed: number;
   approved_value: string;
   in_approval_value: string;
 }
@@ -239,5 +241,84 @@ export function useQuotationMutations(requestId: string) {
     }),
     remove: useMutation({ mutationFn: (id: string) => api.delete<void>(`${base}/${id}`), onSuccess: invalidate }),
     select: useMutation({ mutationFn: (id: string) => api.post<PurchaseRequestDetail>(`${base}/${id}/select`), onSuccess: invalidate }),
+  };
+}
+
+// --- purchase orders (Phase 4) ----------------------------------------------------------------------
+export type OrderStatus = "draft" | "issued" | "cancelled";
+export interface OrderRef { id: string; code: string }
+export interface OrderSummary extends OrderRef {
+  status: OrderStatus;
+  supplier: string;
+  total_amount: string;
+  issued_at: string | null;
+  budget_released: boolean;
+}
+export interface PurchaseOrder extends OrderRef {
+  status: OrderStatus;
+  total_amount: string;
+  supplier: SupplierRef;
+  request_id: string;
+  request_code: string;
+  request_title: string;
+  request_status: string;
+  expected_delivery_date: string | null;
+  issued_at: string | null;
+  cancelled_at: string | null;
+  budget_released: boolean;
+  created_at: string;
+}
+export interface PurchaseOrderDetail extends PurchaseOrder {
+  payment_terms: string | null;
+  delivery_address: string | null;
+  notes: string | null;
+  lines: { id: string; line_no: number; description: string; quantity: string; unit: string; unit_price: string; line_total: string }[];
+  cancel_reason: string | null;
+  created_by: string | null;
+  issued_by: string | null;
+  cancelled_by: string | null;
+  replaces: OrderRef | null;
+  replaced_by: OrderRef | null;
+  committed_amount: string | null;
+  released_amount: string | null;
+  allowed_actions: string[];
+}
+export interface OrderInput {
+  expected_delivery_date: string | null;
+  delivery_address: string | null;
+  notes: string | null;
+  payment_terms?: string | null;
+}
+
+export function useOrders(query: ListQuery & { status?: string; request_id?: string }) {
+  return useQuery({
+    queryKey: [...key, "orders", query],
+    queryFn: ({ signal }) => api.get<Page<PurchaseOrder>>("/procurement/purchase-orders", { ...query }, signal),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useOrder(id: string | undefined) {
+  return useQuery({ queryKey: [...key, "order", id], queryFn: () => api.get<PurchaseOrderDetail>(`/procurement/purchase-orders/${id}`), enabled: Boolean(id) });
+}
+
+export function useCreateOrder(requestId: string) {
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: (body: OrderInput) => api.post<PurchaseOrderDetail>(`/procurement/requests/${requestId}/purchase-orders`, body),
+    onSuccess: invalidate,
+  });
+}
+
+export function useOrderMutations(id: string) {
+  const invalidate = useInvalidateAll();
+  const base = `/procurement/purchase-orders/${id}`;
+  return {
+    update: useMutation({ mutationFn: (body: OrderInput) => api.patch<PurchaseOrderDetail>(base, body), onSuccess: invalidate }),
+    issue: useMutation({ mutationFn: () => api.post<PurchaseOrderDetail>(`${base}/issue`), onSuccess: invalidate }),
+    cancel: useMutation({
+      mutationFn: (body: { reason: string; release_budget: boolean }) => api.post<PurchaseOrderDetail>(`${base}/cancel`, body),
+      onSuccess: invalidate,
+    }),
   };
 }

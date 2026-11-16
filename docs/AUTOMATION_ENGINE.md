@@ -149,7 +149,7 @@ class PurchaseRequestRouting:
 | **Schedule** | `ScheduleTrigger(every_minutes=N)` | Each tick, `wf_schedule_state` rows with `next_fire_at <= now()` are locked and advanced, and one execution is created with key `<wf>:v<n>:slot:<iso-slot>`. Missed slots are collapsed into a single run (no backlog storm after downtime). |
 | **Manual** | Admin "Run now" / "Retry" | Requires `automation.workflows.run`. The idempotency key includes a request nonce for "Run now". "Retry" re-runs the same execution. |
 
-Events are facts in the past tense (`lead.created`, `approval.decided`, `purchase_order.approved`),
+Events are facts in the past tense (`lead.created`, `approval.decided`, `purchase_order.issued`),
 with a small payload (ids and the minimum needed). Workflows reload current state through services
 rather than trusting a stale payload.
 
@@ -238,7 +238,7 @@ action (one service call). For example, "approve PO + write commitment" is one s
 | Key | Trigger | Steps (summary) | Priority |
 |---|---|---|---|
 | `procurement.pr_routing` | `purchase_request.submitted` | budget check → open approval by policy (over-budget adds tiers) → notify approvers | M |
-| `approvals.decision_notify` | `approval.decided` | notify requester → if a next step is open, notify its approvers. (The decision itself, including PO approval → budget commitment, is applied **synchronously** in the approval service transaction, not by this workflow.) | M |
+| `approvals.decision_notify` | `approval.decided` | notify requester → if a next step is open, notify its approvers. (The decision itself, including the final purchase-request approval → budget commitment (D-16), is applied **synchronously** in the approval service transaction, not by this workflow.) | M |
 | `finance.budget_threshold_alert` | `budget.ledger_changed` | if utilisation ≥ 80% / 100% (param) → notify finance manager (deduped per threshold) | M |
 | `crm.new_lead` | `lead.created` | deterministic score → round-robin assign → set follow-up due (48 h) → notify agent → AI summary (advisory, `continue` on error) | M |
 | `crm.follow_up_sla` | schedule 15 min | find overdue follow-ups → escalate to sales manager (deduped per lead per day) | M |

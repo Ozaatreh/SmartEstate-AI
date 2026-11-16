@@ -85,17 +85,20 @@ Priority: **M** = must have for the demo, **S** = should have, **C** = could hav
 
 ### 5.4 Finance & Budget Management (M)
 - Budget categories. Annual budgets per department and category.
-- An immutable **budget ledger**: commitments (approved POs), releases, actuals (expenses).
+- An immutable **budget ledger**: commitments (fully approved purchase requests — D-16), releases, actuals (expenses).
 - Available budget = allocated − committed − actual (always computed, never stored).
 - Expenses with approval. Threshold alerts at 80% and 100% of budget.
 
 ### 5.5 Procurement & Supplier Management (M)
 - Suppliers (status, category, rating).
 - Purchase requests with lines. Submission runs a deterministic budget check.
-- Purchase orders created from approved requests. PO approval commits budget.
+- Purchase orders created from fully approved requests: supplier, lines, quantities and agreed prices are copied from the
+  selected quotation. Lifecycle `draft → issued → cancelled`; no second approval chain. **The budget is committed once, at
+  the request's final approval** (D-16, a deliberate deviation from the original "PO approval commits budget").
+  Cancelling an order either releases that commitment exactly once and closes the request, or keeps it for a replacement order.
 
 ### 5.6 Approval Management (M)
-- One approval service for every approvable document (PR, PO, expense, leave, marketing content).
+- One approval service for every approvable document (PR, expense, leave, marketing content). Purchase orders have no approval chain (D-16).
 - Approval policies: entity type + amount band → ordered steps, each needing a permission.
 - Segregation of duties (no self-approval), comments, a full history, "my pending approvals".
 
@@ -141,7 +144,7 @@ Priority: **M** = must have for the demo, **S** = should have, **C** = could hav
 | FR-03 | Submitting a PR or expense runs the budget check. If the budget is insufficient, the document is still submitted, marked `over_budget`, and routed to the higher approval tier (see [DECISION] D-8). |
 | FR-04 | Approval routing is chosen deterministically from policies by entity type and amount. |
 | FR-05 | A user can never approve a document they requested. |
-| FR-06 | PO approval writes a commitment to the budget ledger in the same transaction. Cancelling a PO writes a release. |
+| FR-06 | The final approval of a purchase request writes its single budget commitment in the same transaction (D-16). Creating or issuing a purchase order writes nothing to the ledger. Cancelling an order with "release" writes the request's single release (idempotent key) and closes the request; it is refused while another active order still needs the commitment. |
 | FR-07 | Business events (`purchase_request.submitted`, `lead.created`…) are recorded in the same transaction as the change that caused them. Workflows react to them asynchronously. |
 | FR-08 | Each workflow execution and step is stored with status, timings, inputs and outputs, and any error. A failed execution can be retried from the admin screen. |
 | FR-09 | Claude reaches data only through registered tools that call services under the caller's permissions. It never receives SQL, database access or credentials. |
@@ -222,7 +225,8 @@ automated tests, and a demo script.
 2. Demo users for each role can sign in, and each sees only what their permissions allow.
    Direct API calls without permission return 403.
 3. **Procure-to-commit demo:** an employee submits a PR → the budget check runs → the workflow routes it to the
-   right approver → approval → PO → PO approval commits budget → the dashboard reflects it.
+   right approver → final approval commits budget (D-16) → procurement creates and issues the PO from the approved
+   quotation → the dashboard reflects it.
    Each step appears in the workflow execution history.
 4. An over-threshold PR needs the extra approval tier. Self-approval is refused.
 5. **Lead demo:** a visitor asks the property assistant about 2-bedroom units under a budget → gets

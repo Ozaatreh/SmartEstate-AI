@@ -233,6 +233,7 @@ class RequestOut(BaseModel):
 
 
 class RequestDetail(RequestOut):
+    purchase_orders: list[OrderSummary] = []
     justification: str
     fiscal_year: int
     category_detail: CategoryOut
@@ -254,5 +255,87 @@ class RequestStats(BaseModel):
     approved: int
     rejected: int
     cancelled: int
+    closed: int = 0
     approved_value: Decimal
     in_approval_value: Decimal
+
+
+# --- purchase orders (Phase 4) ----------------------------------------------------------------------
+class OrderRef(BaseModel):
+    id: uuid.UUID
+    code: str
+
+
+class OrderSummary(OrderRef):
+    status: str
+    supplier: str
+    total_amount: Decimal
+    issued_at: datetime | None
+    budget_released: bool
+
+
+class OrderLineOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    line_no: int
+    description: str
+    quantity: Decimal
+    unit: str
+    unit_price: Decimal
+    line_total: Decimal
+
+
+class OrderOut(BaseModel):
+    id: uuid.UUID
+    code: str
+    status: str
+    total_amount: Decimal
+    supplier: SupplierRef
+    request_id: uuid.UUID
+    request_code: str
+    request_title: str
+    request_status: str
+    expected_delivery_date: date | None
+    issued_at: datetime | None
+    cancelled_at: datetime | None
+    budget_released: bool
+    created_at: datetime
+
+
+class OrderDetail(OrderOut):
+    payment_terms: str | None
+    delivery_address: str | None
+    notes: str | None
+    lines: list[OrderLineOut]
+    cancel_reason: str | None
+    created_by: str | None
+    issued_by: str | None
+    cancelled_by: str | None
+    replaces: OrderRef | None
+    replaced_by: OrderRef | None
+    committed_amount: Decimal | None
+    released_amount: Decimal | None
+    allowed_actions: list[str]
+
+
+class OrderCreateIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expected_delivery_date: date | None = None
+    delivery_address: str | None = Field(default=None, max_length=300)
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class OrderUpdateIn(OrderCreateIn):
+    payment_terms: str | None = Field(default=None, max_length=120)
+
+
+class OrderCancelIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=3, max_length=500)
+    release_budget: bool
+
+
+RequestDetail.model_rebuild()
