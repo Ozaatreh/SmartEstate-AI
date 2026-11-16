@@ -1,0 +1,68 @@
+/*
+ * SmartEstate AI — design tokens ("Najd" identity, UI_UX_DESIGN.md § 2).
+ * Components use only these semantic tokens (via Tailwind), never raw colour values.
+ * Dark mode later = a `.dark { … }` block redefining the same names.
+ */
+:root {
+  /* Surfaces */
+  --canvas: #f7f6f3;
+  --surface: #ffffff;
+  --surface-subtle: #fbfaf8;
+  --surface-sunken: #f2f0ec;
+  --border: #e5e2dc;
+  --border-subtle: #eeece7;
+  --border-strong: #d6d2ca;
+
+  /* Text */
+  --text: #0f1a2b;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+  --text-inverse: #ffffff;
+
+  /* Brand & actions */
+  --primary: #14213d; /* night ink */
+  --primary-hover: #1d2d52;
+  --primary-foreground: #ffffff;
+  --brand: #a4532b; /* desert clay */
+  --brand-hover: #8f4724;
+  --brand-subtle: #f6ece6;
+  --ai: #5b4bc4;
+  --ai-subtle: #efedfa;
+
+  /* Status */
+  --success: #15803d;
+  --success-subtle: #e8f5ec;
+  --warning: #b45309;
+  --warning-subtle: #fdf3e7;
+  --danger: #b91c1c;
+  --danger-subtle: #fcebeb;
+  --info: #1d4ed8;
+  --info-subtle: #eaf0fd;
+  --neutral: #475569;
+  --neutral-subtle: #f1f2f4;
+
+  /* Charts (fixed order) */
+  --chart-1: #1f3a5f;
+  --chart-2: #c0703f;
+  --chart-3: #3f8f7f;
+  --chart-4: #8c7ad9;
+  --chart-5: #9aa5b1;
+
+  /* Shape & elevation */
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --radius-dialog: 10px;
+  --shadow-overlay: 0 8px 24px -6px rgb(15 26 43 / 0.14), 0 2px 6px -2px rgb(15 26 43 / 0.08);
+  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--brand);
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 250ms;
+
+  /* Layout */
+  --sidebar-width: 248px;
+  --sidebar-rail: 64px;
+  --topbar-height: 56px;
+}

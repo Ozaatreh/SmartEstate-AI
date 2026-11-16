@@ -1,0 +1,7 @@
+# Keep LF in the repository and working tree (shell scripts break with CRLF).
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.webp binary
+*.woff2 binary
