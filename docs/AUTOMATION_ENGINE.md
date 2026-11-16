@@ -1,8 +1,25 @@
 # SmartEstate AI — Python Automation Engine
 
-> Status: **Phase 0 design.** The prototype ships **predefined Python workflows**. A dynamic
+> Status: **Implemented in Phase 3.** The prototype ships **predefined Python workflows**. A dynamic
 > workflow builder and visual editor are out of scope, but the contracts below are designed so
 > definitions can later move into the database without rewriting triggers, conditions or actions.
+
+## 0. As implemented (Phase 3) — differences from the Phase 0 design
+
+| Topic | Implementation |
+|---|---|
+| Process model | **Separate worker process**: `python -m app.automation.worker` (`--once` drains the queue and exits). Any number of workers can run; each sends a heartbeat (`wf_worker_heartbeats`) shown in the UI. The API never executes workflows. |
+| Code layout | `app/automation/`: `contracts.py`, `events.py` (EventBus), `registry.py` (Action Registry + workflow registry), `manager.py` (Workflow Manager), `conditions.py` (Condition Evaluator), `engine.py` (Trigger Manager + Workflow Executor + recovery), `errors.py`, `logs.py`, `actions/`, `workflows.py`, `service.py` / `repository.py` / `router.py` (management API). |
+| Claiming | `UPDATE … WHERE id IN (SELECT … FOR UPDATE SKIP LOCKED)` sets `status=running`, increments `attempt` and sets a **lease** (`lease_owner`, `lease_expires_at` = timeout + 30 s). |
+| Fencing | Each step re-locks its execution row (`FOR NO KEY UPDATE`, so foreign-key inserts of log rows aren't blocked) and checks owner + attempt before and after the action; a worker that lost its lease raises `LeaseLost` and commits nothing. |
+| Timeouts | Per-attempt time budget: PostgreSQL `SET LOCAL statement_timeout` for database work plus a deadline check before commit. An overrun rolls the step back and is a transient failure (`timeout`). Blocking calls outside the database must carry their own timeout (e.g. the AI SDK in Phase 6). |
+| Recovery | Executions whose lease expired are requeued with backoff (`abandoned`) or failed after the last attempt. |
+| Schedules | `wf_definitions.next_run_at` / `last_run_at` (no separate schedule table); slot idempotency key; missed slots collapse into one run. |
+| Clock | All queue comparisons use the database clock (`clock_timestamp()`). |
+| Logs | `wf_execution_logs` rows written in their own short transactions, so they survive failed steps. |
+| Retry from UI | Failed / cancelled executions get one more attempt (`max_attempts = attempt + 1`); completed steps are reused. Permission `automation.executions.operate`, audited. |
+
+**Workflows shipped:** `procurement.purchase_request_approval` (route check on `purchase_request.sent_for_approval`; reminders and reporting-line escalation every 15 min), `finance.budget_validation` (threshold and over-budget alerts on submit / send-for-approval / ledger change), `procurement.supplier_analysis` (advisory scoring on `purchase_request.quotation_added`), `crm.lead_registration` (score → round-robin assign → notify on `lead.created`). Events emitted by Phase 2 services: `purchase_request.{submitted, quotation_added, quotation_selected, sent_for_approval, approved, rejected, cancelled}`, `approval.{requested, decided}`, `budget.ledger_changed`, `lead.created`.
 
 ## 1. Principles
 
@@ -14,7 +31,7 @@
 3. **Durable and observable.** Every event, execution and step is a PostgreSQL row.
 4. **At-least-once delivery, exactly-once effect.** Events may be processed more than once, so
    executions and actions are idempotent.
-5. **No new infrastructure.** PostgreSQL is the queue. The worker runs inside the API process.
+5. **No new infrastructure.** PostgreSQL is the queue. Workers run as separate Python processes (see § 0).
 
 ## 2. Components
 

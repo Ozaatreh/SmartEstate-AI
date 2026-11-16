@@ -10,12 +10,14 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.ai.status import log_ai_status, resolve_ai_status
+from app.automation.router import router as automation_router
 from app.core.config import Settings, get_settings
 from app.core.handlers import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import CsrfHeaderMiddleware, RequestContextMiddleware
 from app.modules.approvals.router import router as approvals_router
 from app.modules.audit.router import router as audit_router
+from app.modules.crm.router import router as crm_router
 from app.modules.finance.router import router as finance_router
 from app.modules.health.router import router as health_router
 from app.modules.hr.router import router as hr_router
@@ -72,7 +74,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         hr_router,
         finance_router,
         procurement_router,
-        approvals_router,
+        approvals_router, crm_router, automation_router,
     ):
         api.include_router(r)
     app.include_router(api)

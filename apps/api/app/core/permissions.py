@@ -39,6 +39,14 @@ class Perm(StrEnum):
     APPROVALS_FINANCE = "approvals.finance.approve"
     APPROVALS_EXECUTIVE = "approvals.executive.approve"
     APPROVALS_READ_ALL = "approvals.requests.read_all"
+    # CRM (foundation; full CRM in Phase 5)
+    CRM_LEADS_CREATE = "crm.leads.create"
+    CRM_LEADS_READ_ALL = "crm.leads.read_all"
+    CRM_LEADS_WORK = "crm.leads.work"
+    # Automation
+    AUTOMATION_WORKFLOWS_READ = "automation.workflows.read"
+    AUTOMATION_WORKFLOWS_MANAGE = "automation.workflows.manage"
+    AUTOMATION_EXECUTIONS_OPERATE = "automation.executions.operate"
 
 
 PERMISSION_DESCRIPTIONS: dict[Perm, str] = {
@@ -62,6 +70,12 @@ PERMISSION_DESCRIPTIONS: dict[Perm, str] = {
     Perm.APPROVALS_FINANCE: "Approve at finance level",
     Perm.APPROVALS_EXECUTIVE: "Approve at executive level",
     Perm.APPROVALS_READ_ALL: "View every approval request",
+    Perm.CRM_LEADS_CREATE: "Register new leads",
+    Perm.CRM_LEADS_READ_ALL: "View every lead",
+    Perm.CRM_LEADS_WORK: "Receive and work assigned leads",
+    Perm.AUTOMATION_WORKFLOWS_READ: "View workflows, executions and logs",
+    Perm.AUTOMATION_WORKFLOWS_MANAGE: "Enable, disable and configure workflows",
+    Perm.AUTOMATION_EXECUTIONS_OPERATE: "Retry, cancel and run workflow executions",
 }
 
 SUPER_ADMIN_ROLE = "super_admin"
@@ -81,27 +95,93 @@ _STAFF = {P.HR_EMPLOYEES_READ, P.PROCUREMENT_REQUESTS_CREATE}
 # Default roles (data; editable later).
 DEFAULT_ROLES: tuple[RoleSpec, ...] = (
     RoleSpec(SUPER_ADMIN_ROLE, "Super Admin", "Full access to every module and setting", frozenset(Perm)),
-    RoleSpec("executive", "Executive", "Company-wide visibility and top-tier approvals", frozenset({
-        *_STAFF, P.AUDIT_LOGS_READ, P.FINANCE_BUDGETS_READ, P.PROCUREMENT_SUPPLIERS_READ, P.PROCUREMENT_REQUESTS_READ_ALL,
-        P.APPROVALS_EXECUTIVE, P.APPROVALS_READ_ALL,
-    })),
-    RoleSpec("finance_manager", "Finance Manager", "Budgets, expenses and financial approvals", frozenset({
-        *_STAFF, P.FINANCE_BUDGETS_READ, P.FINANCE_BUDGETS_MANAGE, P.FINANCE_PROJECTS_MANAGE, P.PROCUREMENT_SUPPLIERS_READ,
-        P.PROCUREMENT_REQUESTS_READ_ALL, P.APPROVALS_FINANCE, P.APPROVALS_READ_ALL,
-    })),
-    RoleSpec("hr_manager", "HR Manager", "Employees, departments and leave", frozenset({
-        *_STAFF, P.IDENTITY_USERS_READ, P.HR_EMPLOYEES_MANAGE, P.HR_DEPARTMENTS_MANAGE,
-    })),
-    RoleSpec("department_manager", "Department Manager", "First-level approvals for a department", frozenset({
-        *_STAFF, P.FINANCE_BUDGETS_READ, P.PROCUREMENT_SUPPLIERS_READ,
-    })),
-    RoleSpec("procurement_officer", "Procurement Officer", "Suppliers, purchase requests and orders", frozenset({
-        *_STAFF, P.FINANCE_BUDGETS_READ, P.PROCUREMENT_SUPPLIERS_READ, P.PROCUREMENT_SUPPLIERS_MANAGE,
-        P.PROCUREMENT_REQUESTS_READ_ALL, P.PROCUREMENT_QUOTATIONS_MANAGE,
-    })),
-    RoleSpec("sales_manager", "Sales Manager", "Leads, assignment, escalations and reservations", frozenset(_STAFF)),
-    RoleSpec("sales_agent", "Sales Agent", "Own leads, activities and reservations", frozenset(_STAFF)),
-    RoleSpec("marketing_manager", "Marketing Manager", "Campaigns and AI content approval", frozenset(_STAFF)),
+    RoleSpec(
+        "executive",
+        "Executive",
+        "Company-wide visibility and top-tier approvals",
+        frozenset(
+            {
+                *_STAFF,
+                P.AUDIT_LOGS_READ,
+                P.FINANCE_BUDGETS_READ,
+                P.PROCUREMENT_SUPPLIERS_READ,
+                P.PROCUREMENT_REQUESTS_READ_ALL,
+                P.APPROVALS_EXECUTIVE,
+                P.APPROVALS_READ_ALL,
+                P.CRM_LEADS_READ_ALL,
+                P.AUTOMATION_WORKFLOWS_READ,
+            }
+        ),
+    ),
+    RoleSpec(
+        "finance_manager",
+        "Finance Manager",
+        "Budgets, expenses and financial approvals",
+        frozenset(
+            {
+                *_STAFF,
+                P.FINANCE_BUDGETS_READ,
+                P.FINANCE_BUDGETS_MANAGE,
+                P.FINANCE_PROJECTS_MANAGE,
+                P.PROCUREMENT_SUPPLIERS_READ,
+                P.PROCUREMENT_REQUESTS_READ_ALL,
+                P.APPROVALS_FINANCE,
+                P.APPROVALS_READ_ALL,
+                P.AUTOMATION_WORKFLOWS_READ,
+            }
+        ),
+    ),
+    RoleSpec(
+        "hr_manager",
+        "HR Manager",
+        "Employees, departments and leave",
+        frozenset(
+            {
+                *_STAFF,
+                P.IDENTITY_USERS_READ,
+                P.HR_EMPLOYEES_MANAGE,
+                P.HR_DEPARTMENTS_MANAGE,
+            }
+        ),
+    ),
+    RoleSpec(
+        "department_manager",
+        "Department Manager",
+        "First-level approvals for a department",
+        frozenset(
+            {
+                *_STAFF,
+                P.FINANCE_BUDGETS_READ,
+                P.PROCUREMENT_SUPPLIERS_READ,
+            }
+        ),
+    ),
+    RoleSpec(
+        "procurement_officer",
+        "Procurement Officer",
+        "Suppliers, purchase requests and orders",
+        frozenset(
+            {
+                *_STAFF,
+                P.FINANCE_BUDGETS_READ,
+                P.PROCUREMENT_SUPPLIERS_READ,
+                P.PROCUREMENT_SUPPLIERS_MANAGE,
+                P.PROCUREMENT_REQUESTS_READ_ALL,
+                P.PROCUREMENT_QUOTATIONS_MANAGE,
+                P.AUTOMATION_WORKFLOWS_READ,
+            }
+        ),
+    ),
+    RoleSpec(
+        "sales_manager",
+        "Sales Manager",
+        "Leads, assignment, escalations and reservations",
+        frozenset({*_STAFF, P.CRM_LEADS_CREATE, P.CRM_LEADS_READ_ALL}),
+    ),
+    RoleSpec(
+        "sales_agent", "Sales Agent", "Own leads, activities and reservations", frozenset({*_STAFF, P.CRM_LEADS_CREATE, P.CRM_LEADS_WORK})
+    ),
+    RoleSpec("marketing_manager", "Marketing Manager", "Campaigns and AI content approval", frozenset({*_STAFF, P.CRM_LEADS_CREATE})),
     RoleSpec("employee", "Employee", "Own profile and own requests", frozenset(_STAFF)),
 )
 

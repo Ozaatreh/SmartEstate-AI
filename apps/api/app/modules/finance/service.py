@@ -8,6 +8,7 @@ from sqlalchemy import Select, case, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.automation import events
 from app.common.codes import next_code
 from app.common.listing import ListParams, apply_sort, escape_like, paginate
 from app.common.money import ZERO, q2
@@ -231,6 +232,8 @@ class FinanceService:
         )
         self.session.add(entry)
         self.session.flush()
+        events.emit(self.session, "budget.ledger_changed", entity_type="budget", entity_id=budget_id, actor_user_id=actor_user_id,
+                    payload={"budget_id": str(budget_id), "entry_type": entry_type, "amount": str(amount), "source_code": source_code})
         return entry
 
     # --- categories & projects -------------------------------------------------------------------------

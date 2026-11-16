@@ -10,6 +10,7 @@ SEQUENCES = {
     "operational_project": ("operational_project_code_seq", "OP-", 4),
     "supplier": ("supplier_code_seq", "SUP-", 5),
     "purchase_request": ("purchase_request_code_seq", "PR-", 5),
+    "lead": ("lead_code_seq", "LEAD-", 5),
 }
 
 

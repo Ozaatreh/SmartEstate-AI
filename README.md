@@ -3,7 +3,7 @@
 AI-powered real estate business platform: internal operations, process automation, CRM and
 marketing, in one modular monolith. **Prototype.** NOVA Residences, Riyadh, and all demo data are fictional.
 
-**Status: Phase 2 (business operations: HR, finance & budgets, procurement, approvals) complete.**
+**Status: Phase 3 (Python automation engine + worker, four workflows, Automation UI) complete.**
 See [docs/](docs/) for the specification, architecture, database design, automation engine, UI/UX
 design system and plan.
 
@@ -98,6 +98,24 @@ npm run dev                                           # http://localhost:5173 (p
 | GET | `/api/v1/notifications/unread-count` | |
 | POST | `/api/v1/notifications/{id}/read`, `/read-all` | |
 | GET | `/api/v1/audit-logs` | `audit.logs.read`; `q, sort, page, page_size, action, entity_type, actor_user_id` |
+
+### Automation worker (Phase 3)
+
+Workflows run in a separate process. Start it next to the API (any number of workers is safe):
+
+```bash
+cd apps/api
+.venv/Scripts/python -m app.automation.worker          # Ctrl+C to stop; --once drains the queue and exits
+```
+
+Without a worker, business events queue up in PostgreSQL and the Automation page shows "No worker running".
+Workflows, executions, step details, logs and retries are at `/automation` (permission `automation.workflows.read`).
+Design and guarantees: [docs/AUTOMATION_ENGINE.md](docs/AUTOMATION_ENGINE.md).
+
+| Area | Endpoints |
+|---|---|
+| Automation | `GET /automation/overview`, `GET /automation/workflows`, `GET/PATCH /automation/workflows/{key}`, `POST /automation/workflows/{key}/run`, `GET /automation/executions`, `GET /automation/executions/{id}`, `POST …/{id}/retry`, `POST …/{id}/cancel` |
+| CRM (foundation) | `POST /crm/leads`, `GET /crm/leads`, `GET /crm/leads/{id}` |
 
 ### Phase 2 endpoints
 

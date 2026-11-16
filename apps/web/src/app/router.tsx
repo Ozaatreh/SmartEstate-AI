@@ -22,6 +22,10 @@ const RequestFormPage = React.lazy(() => import("@/features/procurement/request-
 const RequestDetailPage = React.lazy(() => import("@/features/procurement/request-detail-page"));
 const SuppliersPage = React.lazy(() => import("@/features/procurement/suppliers-page"));
 const ApprovalsPage = React.lazy(() => import("@/features/approvals/approvals-page"));
+const AutomationPage = React.lazy(() => import("@/features/automation/automation-page"));
+const WorkflowDetailPage = React.lazy(() => import("@/features/automation/workflow-detail-page"));
+const ExecutionsPage = React.lazy(() => import("@/features/automation/executions-page"));
+const ExecutionDetailPage = React.lazy(() => import("@/features/automation/execution-detail-page"));
 
 function PageFallback() {
   return (
@@ -55,6 +59,10 @@ export const router = createBrowserRouter([
               { index: true, element: page(<HomePage />), handle: { title: "Home" } },
               { path: "notifications", element: page(<NotificationsPage />), handle: { title: "Notifications" } },
               { path: "approvals", element: page(<ApprovalsPage />), handle: { title: "Approvals" } },
+              { path: "automation", element: guarded("automation.workflows.read", <AutomationPage />), handle: { section: "Automation", title: "Workflows" } },
+              { path: "automation/workflows/:key", element: guarded("automation.workflows.read", <WorkflowDetailPage />), handle: { section: "Automation", title: "Workflow" } },
+              { path: "automation/executions", element: guarded("automation.workflows.read", <ExecutionsPage />), handle: { section: "Automation", title: "Executions" } },
+              { path: "automation/executions/:id", element: guarded("automation.workflows.read", <ExecutionDetailPage />), handle: { section: "Automation", title: "Execution" } },
               { path: "procurement/requests", element: guarded("procurement.requests.create", <RequestsPage />), handle: { section: "Procurement", title: "Purchase requests" } },
               { path: "procurement/requests/new", element: guarded("procurement.requests.create", <RequestFormPage />), handle: { section: "Procurement", title: "New request" } },
               { path: "procurement/requests/:id", element: page(<RequestDetailPage />), handle: { section: "Procurement", title: "Purchase request" } },

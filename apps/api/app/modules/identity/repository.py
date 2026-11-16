@@ -5,7 +5,7 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.modules.identity.models import Permission, Role, User
+from app.modules.identity.models import Permission, Role, RolePermission, User, UserRole
 
 
 class IdentityRepository:
@@ -26,6 +26,14 @@ class IdentityRepository:
 
     def get_permission(self, code: str) -> Permission | None:
         return self.session.scalar(select(Permission).where(Permission.code == code))
+
+    def users_with_permission(self, code: str) -> list[uuid.UUID]:
+        """Active users holding a permission through one of their roles (explicit grants only)."""
+        return list(self.session.scalars(
+            select(User.id).join(UserRole, UserRole.user_id == User.id).join(RolePermission, RolePermission.role_id == UserRole.role_id)
+            .join(Permission, Permission.id == RolePermission.permission_id)
+            .where(Permission.code == code, User.is_active.is_(True)).distinct().order_by(User.id)
+        ))
 
     def list_permissions(self) -> list[Permission]:
         return list(self.session.scalars(select(Permission).order_by(Permission.code)))

@@ -18,6 +18,7 @@ from sqlalchemy import case, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.automation import events
 from app.common.codes import next_code
 from app.common.listing import ListParams, apply_sort, escape_like, paginate
 from app.common.money import ZERO, line_total, q2, total
@@ -590,6 +591,14 @@ class ProcurementService:
                 entity_id=str(pr.id),
                 dedupe_key=f"pr:{pr.id}:sourcing",
             )
+        self._emit(
+            pr,
+            "purchase_request.submitted",
+            actor_user_id=principal.user_id,
+            amount=str(pr.estimated_total),
+            budget_id=str(pr.budget_id),
+            over_budget=check.over_budget,
+        )
         self.session.commit()
         return pr
 
@@ -618,6 +627,7 @@ class ProcurementService:
                 entity_id=str(pr.id),
                 dedupe_key=f"pr:{pr.id}:cancelled",
             )
+        self._emit(pr, "purchase_request.cancelled", actor_user_id=principal.user_id)
         self.session.commit()
         return pr
 
@@ -648,6 +658,13 @@ class ProcurementService:
             entity_id=pr.id,
             summary=f"Quotation from {supplier.name}: SAR {quote.total_amount:,.2f}",
             changes={"supplier": supplier.code, "total": str(quote.total_amount)},
+        )
+        self._emit(
+            pr,
+            "purchase_request.quotation_added",
+            actor_user_id=principal.user_id,
+            quotation_id=str(quote.id),
+            quotation_count=len(pr.quotations),
         )
         self.session.commit()
         return quote
@@ -711,6 +728,7 @@ class ProcurementService:
             summary=f"{quote.supplier.name} selected · SAR {quote.total_amount:,.2f}",
             changes={"supplier": quote.supplier.code, "total": str(quote.total_amount)},
         )
+        self._emit(pr, "purchase_request.quotation_selected", actor_user_id=principal.user_id, quotation_id=str(quote.id))
         self.session.commit()
         return pr
 
@@ -749,6 +767,14 @@ class ProcurementService:
                 "available": str(check.position.available),  # type: ignore[union-attr]
                 "over_budget": check.over_budget,
             },
+        )
+        self._emit(
+            pr,
+            "purchase_request.sent_for_approval",
+            actor_user_id=principal.user_id,
+            amount=str(quote.total_amount),
+            budget_id=str(pr.budget_id),
+            over_budget=check.over_budget,
         )
         self.session.commit()
         return pr
@@ -797,6 +823,7 @@ class ProcurementService:
                 entity_id=str(pr.id),
                 dedupe_key=f"pr:{pr.id}:approved",
             )
+        self._emit(pr, "purchase_request.approved", actor_user_id=actor.user_id, amount=str(pr.approved_total), budget_id=str(pr.budget_id))
 
     def on_rejected(self, approval: ApprovalRequest, actor: Principal, comment: str) -> None:
         pr = self.session.scalar(
@@ -815,8 +842,19 @@ class ProcurementService:
             entity_id=pr.id,
             summary=f"{pr.code} rejected: {comment}",
         )
+        self._emit(pr, "purchase_request.rejected", actor_user_id=actor.user_id)
 
     # --- helpers -------------------------------------------------------------------------------------------------
+    def _emit(self, pr: PurchaseRequest, event: str, *, actor_user_id: uuid.UUID | None, **payload: object) -> None:
+        events.emit(
+            self.session,
+            event,
+            entity_type=ENTITY,
+            entity_id=pr.id,
+            actor_user_id=actor_user_id,
+            payload={"code": pr.code, "status": pr.status, **payload},
+        )
+
     @staticmethod
     def link(request_id: uuid.UUID | str) -> str:
         return f"/procurement/requests/{request_id}"

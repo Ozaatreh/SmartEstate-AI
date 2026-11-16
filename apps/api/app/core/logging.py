@@ -54,6 +54,9 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure_logging(level: str = "INFO", json_logs: bool = True) -> None:
+    # Windows consoles/redirects default to a legacy code page; logs are always UTF-8.
+    if hasattr(sys.stdout, "reconfigure") and (sys.stdout.encoding or "").lower() != "utf-8":
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     handler = logging.StreamHandler(sys.stdout)
     handler.addFilter(RequestContextFilter())
     handler.setFormatter(

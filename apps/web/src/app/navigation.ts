@@ -1,5 +1,5 @@
 import {
-  Bell, Building2, CheckSquare, FileText, FolderKanban, LayoutGrid, Palette, ScrollText, Truck, Users, Wallet, type LucideIcon,
+  Bell, Bot, Building2, CheckSquare, FileText, FolderKanban, LayoutGrid, Palette, ScrollText, Truck, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem {
@@ -40,6 +40,7 @@ export const NAVIGATION: NavSection[] = [
       { label: "Projects", to: "/finance/projects", icon: FolderKanban, permission: "finance.budgets.read" },
       { label: "Employees", to: "/hr/employees", icon: Users, permission: "hr.employees.read" },
       { label: "Departments", to: "/hr/departments", icon: Building2, permission: "hr.employees.read" },
+      { label: "Automation", to: "/automation", icon: Bot, permission: "automation.workflows.read" },
     ],
   },
   {

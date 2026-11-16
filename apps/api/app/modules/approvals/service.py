@@ -22,6 +22,7 @@ from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from app.automation import events
 from app.common.listing import ListParams, apply_sort, escape_like, paginate
 from app.common.money import q2
 from app.core.errors import BusinessRuleViolation, Conflict, NotFound, PermissionDenied
@@ -39,8 +40,9 @@ from app.modules.approvals.schemas import (
 from app.modules.approvals.subjects import subject_for
 from app.modules.audit.service import AuditService
 from app.modules.hr.models import Department, Employee
-from app.modules.identity.models import Permission, Role, RolePermission, User, UserRole
+from app.modules.identity.models import Role, User
 from app.modules.identity.principal import Principal
+from app.modules.identity.repository import IdentityRepository
 from app.modules.notifications.service import NotificationService
 
 LEVEL_PERMISSION = {
@@ -155,6 +157,21 @@ class ApprovalService:
             changes={"policy": policy.name, "amount": str(req.amount), "over_budget": over_budget},
         )
         self._activate(req, req.steps[0], department_id)
+        events.emit(
+            self.session,
+            "approval.requested",
+            entity_type="approval_request",
+            entity_id=req.id,
+            actor_user_id=actor_user_id,
+            payload={
+                "subject_type": entity_type,
+                "subject_id": str(entity_id),
+                "code": entity_code,
+                "amount": str(req.amount),
+                "levels": levels,
+                "over_budget": over_budget,
+            },
+        )
         return req
 
     def _activate(self, req: ApprovalRequest, step: ApprovalStep, department_id: uuid.UUID | None) -> None:
@@ -210,15 +227,153 @@ class ApprovalService:
         return None, "; ".join(reasons) + "; routed to department approvers."
 
     def _pool_users(self, permission: str, requester: uuid.UUID, deciders: set[uuid.UUID]) -> list[uuid.UUID]:
-        rows = self.session.scalars(
-            select(User.id)
-            .join(UserRole, UserRole.user_id == User.id)
-            .join(RolePermission, RolePermission.role_id == UserRole.role_id)
-            .join(Permission, Permission.id == RolePermission.permission_id)
-            .where(Permission.code == permission, User.is_active.is_(True))
-            .distinct()
-        )
+        rows = IdentityRepository(self.session).users_with_permission(permission)
         return [u for u in rows if u != requester and u not in deciders]
+
+    # --- SLA: reminders, escalation, route checks (called by the Purchase Request Approval workflow) ---------------
+    def overdue_steps(self, older_than_hours: float, *, assigned_only: bool = False) -> list[ApprovalStep]:
+        stmt = (
+            select(ApprovalStep)
+            .join(ApprovalRequest, ApprovalRequest.id == ApprovalStep.request_id)
+            .where(
+                ApprovalStep.status == "pending",
+                ApprovalRequest.status == "pending",
+                ApprovalStep.activated_at < func.clock_timestamp() - func.make_interval(0, 0, 0, 0, 0, 0, older_than_hours * 3600),
+            )
+            .order_by(ApprovalStep.activated_at)
+        )
+        if assigned_only:
+            stmt = stmt.where(ApprovalStep.assigned_user_id.is_not(None))
+        return list(self.session.scalars(stmt).unique())
+
+    def _recipients(self, req: ApprovalRequest, step: ApprovalStep) -> list[uuid.UUID]:
+        deciders = {s.decision.decided_by for s in req.steps if s.decision}
+        return [step.assigned_user_id] if step.assigned_user_id else self._pool_users(step.required_permission, req.requested_by, deciders)
+
+    def remind(self, step: ApprovalStep, *, day_key: str) -> int:
+        """Reminder to whoever must decide the step; at most one per step per day (dedupe)."""
+        req = step.request
+        hours = int((_now() - step.activated_at).total_seconds() // 3600) if step.activated_at else 0
+        recipients = self._recipients(req, step)
+        for uid in recipients:
+            self.notifications.notify(
+                uid,
+                type="approval.reminder",
+                level="warning",
+                title=f"Reminder: {req.entity_code} awaits your decision",
+                body=f"{req.title} · SAR {req.amount:,.2f} · waiting {hours} h at {step.label}",
+                link=subject_for(req.entity_type).link(str(req.entity_id)),
+                entity_type=req.entity_type,
+                entity_id=str(req.entity_id),
+                dedupe_key=f"approval:{req.id}:step:{step.step_order}:reminder:{day_key}",
+            )
+        return len(recipients)
+
+    def escalate(self, step_id: uuid.UUID, *, after_hours: float) -> dict[str, str] | None:
+        """Moves an overdue personally-assigned step up the assignee's reporting line (or to the level's pool).
+        Skips requests that are being decided right now (SKIP LOCKED) and re-checks everything under the lock."""
+        req = self.session.scalar(
+            select(ApprovalRequest)
+            .join(ApprovalStep, ApprovalStep.request_id == ApprovalRequest.id)
+            .where(ApprovalStep.id == step_id)
+            .with_for_update(of=ApprovalRequest, skip_locked=True)
+            .execution_options(populate_existing=True)
+        )
+        if req is None:
+            return None
+        self.session.refresh(req, attribute_names=["steps"])
+        step = next((s for s in req.steps if s.id == step_id), None)
+        if (
+            req.status != "pending"
+            or step is None
+            or step.status != "pending"
+            or step.assigned_user_id is None
+            or step.activated_at is None
+            or (_now() - step.activated_at).total_seconds() < after_hours * 3600
+        ):
+            return None
+        deciders = {s.decision.decided_by for s in req.steps if s.decision}
+        previous = step.assignee
+        employee = self.session.scalar(select(Employee).where(Employee.user_id == step.assigned_user_id))
+        candidate = employee.manager if employee else None
+        new_user: User | None = None
+        hops = 0
+        while candidate is not None and hops < 20:
+            u = candidate.user
+            if (
+                candidate.is_active
+                and u is not None
+                and u.is_active
+                and u.id not in (req.requested_by, step.assigned_user_id)
+                and u.id not in deciders
+            ):
+                new_user = u
+                break
+            candidate, hops = candidate.manager, hops + 1
+        target = new_user.full_name if new_user else POOL_LABEL[step.level]
+        note = f"Escalated after {int(after_hours)} h without a decision: {previous.full_name if previous else 'assignee'} → {target}."
+        step.assigned_user_id = new_user.id if new_user else None
+        step.escalation_reason = f"{step.escalation_reason}; {note}" if step.escalation_reason else note
+        step.activated_at = _now()  # the SLA restarts for the new approver
+        self.session.flush()
+        self.session.refresh(step, attribute_names=["assignee"])
+        self.audit.record(
+            "approval.escalated",
+            actor_user_id=None,
+            entity_type=req.entity_type,
+            entity_id=req.entity_id,
+            summary=f"{req.entity_code}: {note}",
+            changes={"step": step.step_order, "to": target},
+        )
+        link = subject_for(req.entity_type).link(str(req.entity_id))
+        for uid in self._recipients(req, step):
+            self.notifications.notify(
+                uid,
+                type="approval.escalated",
+                level="warning",
+                title=f"Escalated to you: {req.entity_code}",
+                body=f"{req.title} · SAR {req.amount:,.2f} · {note}",
+                link=link,
+                entity_type=req.entity_type,
+                entity_id=str(req.entity_id),
+                dedupe_key=f"approval:{req.id}:step:{step.step_order}:escalated:{target}",
+            )
+        if previous is not None:
+            self.notifications.notify(
+                previous.id,
+                type="approval.escalated_away",
+                level="info",
+                title=f"{req.entity_code} was escalated",
+                body=note,
+                link=link,
+                entity_type=req.entity_type,
+                entity_id=str(req.entity_id),
+                dedupe_key=f"approval:{req.id}:step:{step.step_order}:escalated_from:{previous.id}",
+            )
+        return {"code": req.entity_code, "step": step.label, "from": previous.full_name if previous else "—", "to": target}
+
+    def verify_route(self, approval_id: uuid.UUID) -> dict[str, object]:
+        """Checks the open step can actually be decided: an active assigned user, or at least one eligible pool member."""
+        req = self.session.get(ApprovalRequest, approval_id)
+        if req is None or req.status != "pending" or req.current_step is None:
+            return {"status": "closed"}
+        step = next(s for s in req.steps if s.step_order == req.current_step)
+        if step.assigned_user_id is not None:
+            if step.assignee is not None and step.assignee.is_active:
+                return {"status": "ok", "code": req.entity_code, "step": step.label, "approvers": 1, "assignee": step.assignee.full_name}
+            step.assigned_user_id = None
+            step.escalation_reason = (
+                step.escalation_reason + "; " if step.escalation_reason else ""
+            ) + "Assigned approver is inactive; routed to pool."
+            self.audit.record(
+                "approval.rerouted",
+                actor_user_id=None,
+                entity_type=req.entity_type,
+                entity_id=req.entity_id,
+                summary=f"{req.entity_code}: assigned approver inactive; routed to {POOL_LABEL[step.level].lower()}",
+            )
+        recipients = self._recipients(req, step)
+        return {"status": "ok" if recipients else "no_approvers", "code": req.entity_code, "step": step.label, "approvers": len(recipients)}
 
     # --- deciding ----------------------------------------------------------------------------------------
     def eligibility(self, principal: Principal, req: ApprovalRequest) -> tuple[bool, str | None]:
@@ -337,6 +492,22 @@ class ApprovalService:
                     entity_id=str(req.entity_id),
                     dedupe_key=f"approval:{req.id}:approved",
                 )
+        events.emit(
+            self.session,
+            "approval.decided",
+            entity_type="approval_request",
+            entity_id=req.id,
+            actor_user_id=principal.user_id,
+            payload={
+                "subject_type": req.entity_type,
+                "subject_id": str(req.entity_id),
+                "code": req.entity_code,
+                "decision": decision,
+                "step": step.step_order,
+                "level": step.level,
+                "request_status": req.status,
+            },
+        )
         self.session.commit()
         return req
 

@@ -15,6 +15,7 @@ import sys
 
 from sqlalchemy.orm import Session
 
+from app.automation.manager import sync_definitions
 from app.core.config import Settings, get_settings
 from app.core.permissions import DEFAULT_ROLES, PERMISSION_DESCRIPTIONS, SUPER_ADMIN_ROLE, Perm
 from app.core.security import hash_password
@@ -114,6 +115,7 @@ def run(settings: Settings | None = None) -> None:
         perms = sync_permissions(session)
         roles = sync_roles(session, perms)
         policies, categories = seed_reference(session)
+        workflows = sync_definitions(session)
         created = 0
         if settings.is_dev_like:
             created = seed_demo_users(session, settings, roles)
@@ -121,6 +123,7 @@ def run(settings: Settings | None = None) -> None:
         business = settings.is_dev_like and seed_demo_business(session, settings.seed_admin_email.split("@", 1)[1])
     print(
         f"Seed complete: {len(perms)} permissions, {len(roles)} roles, {policies} approval policies, {categories} budget categories, "
+        f"{workflows} workflows, "
         f"{created} demo accounts created" + ("; fictional demo organisation created." if business else ".")
     )
     if not settings.is_dev_like:
