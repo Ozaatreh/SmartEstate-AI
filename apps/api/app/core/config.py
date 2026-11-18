@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     # Hosted evaluation demo only: seed the fictional demo accounts and data in *staging* on first boot.
     # Refused in production (see _production_guards). Development/test always seed demo data.
     seed_demo_data: bool = False
+    # One-time: set every fictional demo account (SEED_ADMIN_EMAIL's domain) to SEED_DEMO_PASSWORD on the next boot,
+    # clearing lockouts and signing old sessions out. Remove it again afterwards. Refused in production.
+    reset_demo_passwords: bool = False
 
     # --- AI: lenient on purpose (validated by app.ai.status, never at startup) ---
     ai_enabled: str = "false"
@@ -101,6 +104,8 @@ class Settings(BaseSettings):
                 raise ValueError("COOKIE_SECURE cannot be false outside development/test")
         if self.app_env == "production" and self.seed_demo_data:
             raise ValueError("SEED_DEMO_DATA is for staging demos only and cannot be enabled in production")
+        if self.app_env == "production" and self.reset_demo_passwords:
+            raise ValueError("RESET_DEMO_PASSWORDS is for staging demos only and cannot be enabled in production")
         return self
 
     @property

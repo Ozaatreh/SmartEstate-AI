@@ -64,6 +64,12 @@ Demo data: with `APP_ENV=staging` and `SEED_DEMO_DATA=true` the first boot creat
 (all with `SEED_DEMO_PASSWORD`) and the fictional NOVA organisation; later boots skip it, so restarts never re-create
 data evaluators changed. `SEED_DEMO_DATA` is refused when `APP_ENV=production`.
 
+### Changing the demo password later
+Demo accounts keep the password from the boot that created them (seeding never re-runs). To change it: set the new
+`SEED_DEMO_PASSWORD`, add `RESET_DEMO_PASSWORDS=true`, redeploy once — every `@smartestate.demo` account gets the new
+password, lockouts are cleared and old sessions are signed out (audited) — then **remove** `RESET_DEMO_PASSWORDS`.
+Refused when `APP_ENV=production`.
+
 ## After the first boot (owner, in the dashboard — audited, no code)
 The demo seed creates NOVA **unpublished** (as in development). Sign in as the demo Super Admin and, in
 Property Portfolio → NOVA → Edit project: tick "Published on the marketing website"; optionally set the illustrative

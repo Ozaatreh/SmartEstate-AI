@@ -21,6 +21,7 @@ from app.core.config import Settings, get_settings
 from app.core.permissions import DEFAULT_ROLES, PERMISSION_DESCRIPTIONS, SUPER_ADMIN_ROLE, Perm
 from app.core.security import hash_password
 from app.db.session import get_sessionmaker
+from app.modules.audit.service import AuditService
 from app.modules.identity.models import Permission, Role, User
 from app.modules.identity.repository import IdentityRepository
 from app.modules.notifications.service import NotificationService
@@ -112,6 +113,29 @@ def seed_demo_users(session: Session, settings: Settings, roles: dict[str, Role]
     return created
 
 
+def reset_demo_passwords(session: Session, settings: Settings) -> int:
+    """Set every fictional demo account (the seed e-mail domain, e.g. ``.demo``) to SEED_DEMO_PASSWORD, clear lockouts
+    and invalidate existing sessions. Only for demo environments; returns how many accounts were reset."""
+    if settings.seed_demo_password is None or len(settings.seed_demo_password.get_secret_value()) < 12:
+        raise SystemExit("SEED_DEMO_PASSWORD must be set (at least 12 characters) to reset demo passwords.")
+    domain = "@" + settings.seed_admin_email.split("@", 1)[1].lower()
+    password_hash = hash_password(settings.seed_demo_password.get_secret_value())
+    users = [u for u in session.scalars(select(User)) if u.email.lower().endswith(domain)]
+    for user in users:
+        user.password_hash = password_hash
+        user.failed_login_count = 0
+        user.locked_until = None
+        user.token_version += 1  # signs out any existing session
+    if users:
+        AuditService(session).record(
+            "identity.demo_passwords_reset",
+            actor_user_id=None,
+            entity_type="user",
+            summary=f"Demo account passwords reset on start-up ({len(users)} accounts, {domain})",
+        )
+    return len(users)
+
+
 def run(settings: Settings | None = None) -> None:
     settings = settings or get_settings()
     with get_sessionmaker()() as session:
@@ -127,6 +151,10 @@ def run(settings: Settings | None = None) -> None:
             print("Hosted demo data already seeded; skipping.", file=sys.stderr)
         if demo:
             created = seed_demo_users(session, settings, roles)
+        reset = 0
+        if settings.reset_demo_passwords and settings.seeds_demo_data:
+            reset = reset_demo_passwords(session, settings)
+            print(f"Demo account passwords reset: {reset}. Remove RESET_DEMO_PASSWORDS now.", file=sys.stderr)
         session.commit()
         business = demo and seed_demo_business(session, settings.seed_admin_email.split("@", 1)[1])
         inventory = seed_demo_realestate(session) if demo else None
