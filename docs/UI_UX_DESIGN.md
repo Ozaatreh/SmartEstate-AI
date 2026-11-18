@@ -165,7 +165,7 @@ Each layout is checked at 1440, 1024 and 390 px wide.
 ## 9. Imagery (D-14)
 
 - NOVA Residences is fictional, so imagery is **illustrative**: freely licensed architectural photos
-  (Unsplash licence) or renders you supply. Files are stored locally in `apps/web/public/media/nova/` and
+  (Unsplash licence) or renders you supply. Files are stored locally in `apps/marketing/public/media/nova/` (and the dashboard's `public/`) and
   credited in `CREDITS.md`, and every image carries a small "Illustrative image" caption.
 - Optimised to WebP at 2–3 sizes with `srcset`, lazy-loaded below the fold, fixed aspect ratios (16:9 hero, 4:3 cards) to avoid layout shift.
 - Downloading the image set needs your approval (and the list of files) before Phase 5.

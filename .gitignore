@@ -17,8 +17,10 @@ apps/api/var/
 
 # Node
 node_modules/
-apps/web/dist/
-apps/web/coverage/
+apps/dashboard/dist/
+apps/dashboard/coverage/
+apps/marketing/dist/
+apps/marketing/coverage/
 *.tsbuildinfo
 
 # OS / editors
@@ -26,3 +28,9 @@ apps/web/coverage/
 Thumbs.db
 .vscode/
 .idea/
+
+# Assessment submission bundle (built by infrastructure/scripts/build_submission.py)
+submission/
+submission-extras/
+# Cloudflare Wrangler local state
+.wrangler/

@@ -22,6 +22,9 @@ PR_POLICIES: tuple[tuple[str, Decimal, Decimal | None, tuple[tuple[str, str], ..
     ),
 )
 
+# Phase 7B: one review step by a marketing approver; content carries no amount.
+MARKETING_POLICY = ("Marketing content review", (("marketing", "Marketing manager"),))
+
 CATEGORIES: tuple[tuple[str, str, str], ...] = (
     ("CAPEX-CONSTR", "Construction & site works", "Capital works on development projects"),
     ("EQUIP", "Equipment & tools", "Plant, tools and site equipment"),
@@ -49,6 +52,18 @@ def seed_reference(session: Session) -> tuple[int, int]:
                 )
             )
             policies += 1
+    if session.scalar(select(ApprovalPolicy).where(ApprovalPolicy.entity_type == "marketing_content")) is None:
+        name, steps = MARKETING_POLICY
+        session.add(
+            ApprovalPolicy(
+                entity_type="marketing_content",
+                name=name,
+                min_amount=Decimal("0"),
+                max_amount=None,
+                steps=[ApprovalPolicyStep(step_order=i, level=lv, label=label) for i, (lv, label) in enumerate(steps, 1)],
+            )
+        )
+        policies += 1
     categories = 0
     for code, name, desc in CATEGORIES:
         if session.scalar(select(BudgetCategory).where(BudgetCategory.code == code)) is None:

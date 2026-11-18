@@ -9,6 +9,7 @@ Unit status rules:
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy.exc import IntegrityError
@@ -20,6 +21,7 @@ from app.common.money import q2
 from app.core.errors import BusinessRuleViolation, Conflict, NotFound
 from app.core.permissions import Perm
 from app.modules.audit.service import AuditService
+from app.modules.identity.models import User
 from app.modules.identity.principal import Principal, ensure_permission
 from app.modules.realestate.models import ReBuilding, RePaymentPlan, ReProject, ReUnit
 from app.modules.realestate.plans import breakdown
@@ -75,6 +77,61 @@ def _changes(obj: object, data: dict) -> dict[str, list]:
             out[k] = [str(old) if old is not None else None, str(v) if v is not None else None]
             setattr(obj, k, v)
     return out
+
+
+ILLUSTRATIVE_FIELDS = ("illustrative_label", "illustrative_latitude", "illustrative_longitude", "illustrative_source")
+LOCATION_FIELDS = ("address", "country", "latitude", "longitude", "location_verified", *ILLUSTRATIVE_FIELDS)
+
+
+def _apply_location(project: ReProject, principal: Principal, values: dict) -> dict[str, list]:
+    """Apply location edits under the Phase 7D rules and return the audit diff.
+
+    Coordinates come as a pair; "verified" needs coordinates, is never allowed on a fictional demo project, and is
+    reset when the coordinates move without being re-confirmed. Who verified, and when, is recorded.
+    """
+    for k in ("address", "country"):
+        if isinstance(values.get(k), str):
+            values[k] = values[k].strip() or None
+    lat = values.get("latitude", project.latitude)
+    lng = values.get("longitude", project.longitude)
+    if (lat is None) != (lng is None):
+        raise BusinessRuleViolation("Enter both latitude and longitude, or neither.", code="coordinates_incomplete")
+    moved = any(k in values and values[k] != getattr(project, k) for k in ("latitude", "longitude"))
+    verified = bool(values.get("location_verified", project.location_verified))
+    if moved and "location_verified" not in values:
+        verified = False  # a moved pin must be confirmed again
+    if verified and lat is None:
+        raise BusinessRuleViolation("Add the coordinates before marking the location verified.", code="location_unverifiable")
+    if verified and project.is_demo_data:
+        raise BusinessRuleViolation(
+            "This is a fictional demo project, so its location can't be marked verified or pinned on a map.", code="demo_location"
+        )
+    values["location_verified"] = verified
+    # Illustrative map point: a labelled reference place, kept apart from the property location above.
+    for k in ("illustrative_label", "illustrative_source"):
+        if isinstance(values.get(k), str):
+            values[k] = values[k].strip() or None
+    ilat = values.get("illustrative_latitude", project.illustrative_latitude)
+    ilng = values.get("illustrative_longitude", project.illustrative_longitude)
+    if (ilat is None) != (ilng is None):
+        raise BusinessRuleViolation(
+            "Enter both illustrative latitude and longitude, or neither.", code="illustrative_coordinates_incomplete"
+        )
+    if ilat is not None and not values.get("illustrative_label", project.illustrative_label):
+        raise BusinessRuleViolation(
+            "Name the illustrative reference point (e.g. a landmark) so visitors know what the pin shows.",
+            code="illustrative_label_required",
+        )
+    if ilat is not None and verified:
+        raise BusinessRuleViolation(
+            "This project has a verified location; remove the illustrative point (the verified location is shown instead).",
+            code="illustrative_with_verified",
+        )
+    changes = _changes(project, values)
+    if "location_verified" in changes or (verified and moved):
+        project.location_verified_at = datetime.now(UTC) if verified else None
+        project.location_verified_by = principal.user_id if verified else None
+    return changes
 
 
 class RealEstateService:
@@ -137,6 +194,7 @@ class RealEstateService:
                 launch_date=p.launch_date,
                 handover_date=p.handover_date,
                 is_demo_data=p.is_demo_data,
+                is_published=p.is_published,
                 building_count=buildings.get(p.id, 0),
                 units=_counts(counts.get(p.id)),
                 price_from=prices.get(p.id, (None, None))[0],
@@ -157,6 +215,19 @@ class RealEstateService:
             media=list(p.media or []),
             buildings=[BuildingOut.model_validate(b).model_copy(update={"units": _counts(by_building.get(b.id))}) for b in p.buildings],
             payment_plans=[PaymentPlanOut.model_validate(pl) for pl in p.payment_plans],
+            address=p.address,
+            country=p.country,
+            latitude=p.latitude,
+            longitude=p.longitude,
+            location_verified=p.location_verified,
+            location_verified_at=p.location_verified_at,
+            location_verified_by=(verifier.full_name if (verifier := self.session.get(User, p.location_verified_by)) else None)
+            if p.location_verified_by
+            else None,
+            illustrative_label=p.illustrative_label,
+            illustrative_latitude=p.illustrative_latitude,
+            illustrative_longitude=p.illustrative_longitude,
+            illustrative_source=p.illustrative_source,
             can_manage=principal.has(Perm.REALESTATE_INVENTORY_MANAGE),
             created_at=p.created_at,
         )
@@ -166,8 +237,11 @@ class RealEstateService:
         if self.repo.project_by_code(data.code):
             raise Conflict(f"Project code {data.code.upper()} already exists.", code="duplicate_code")
         project = ReProject(
-            **data.model_dump(exclude={"code", "media"}), code=data.code.upper(), media=[m.model_dump(mode="json") for m in data.media]
+            **data.model_dump(exclude={"code", "media", *LOCATION_FIELDS}),
+            code=data.code.upper(),
+            media=[m.stored() for m in data.media],
         )
+        _apply_location(project, principal, {k: getattr(data, k) for k in LOCATION_FIELDS})
         self.session.add(project)
         self._flush_unique("Project code already exists.", "duplicate_code")
         self._record(principal, "project_created", "re_project", project.id, f"{project.code} · {project.name}")
@@ -179,14 +253,18 @@ class RealEstateService:
         project = self._project(project_id)
         values = {k: getattr(data, k) for k in data.model_fields_set}
         if "media" in values and values["media"] is not None:
-            values["media"] = [m.model_dump(mode="json") for m in data.media or []]
-        for required in ("name", "city", "status", "amenities", "media"):
+            values["media"] = [m.stored() for m in data.media or []]
+        for required in ("name", "city", "status", "amenities", "media", "is_published"):
             if required in values and values[required] is None:
                 values.pop(required)
+        if values.get("location_verified", False) is None:
+            values.pop("location_verified")
         launch, handover = values.get("launch_date", project.launch_date), values.get("handover_date", project.handover_date)
         if launch and handover and handover < launch:
             raise BusinessRuleViolation("Handover cannot be before launch.", code="invalid_dates")
+        location = {k: values.pop(k) for k in LOCATION_FIELDS if k in values}
         changes = _changes(project, values)
+        changes.update(_apply_location(project, principal, location))
         if changes:
             self._record(principal, "project_updated", "re_project", project.id, f"{project.code} updated", changes)
         self.session.commit()

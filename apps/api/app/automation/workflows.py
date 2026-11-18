@@ -98,6 +98,39 @@ class PurchaseRequestApproval(Workflow):
 
 
 @register_workflow
+class MarketingContentReview(Workflow):
+    key = "marketing.content_review"
+    name = "Marketing Content Review"
+    description = (
+        "When content is submitted, checks its review can be decided by a marketing approver (never an author of the "
+        "content) and reminds approvers of content waiting too long. The review itself is opened with the submission, "
+        "and approving or rejecting is always a person's decision; approved content is never published automatically."
+    )
+    category = "Marketing"
+    entity_type = "marketing_content"
+    triggers = (EventTrigger(("marketing_content.submitted",)), ScheduleTrigger(every_minutes=15))
+    parameters = {
+        "remind_after_hours": ParamSpec("int", 24, "Remind after", "Send a reminder once content has waited this long.", 1, 336, "hours"),
+    }
+    steps = (
+        Step(
+            "verify_route",
+            "approvals.verify_route",
+            "Verify the review route",
+            lambda c: {"subject_type": "marketing_content", "subject_id": c.entity_id},
+            when=trigger_is("event"),
+        ),
+        Step(
+            "remind",
+            "approvals.send_reminders",
+            "Remind marketing approvers",
+            lambda c: {"remind_after_hours": c.parameters["remind_after_hours"], "entity_type": "marketing_content"},
+            when=trigger_is("schedule"),
+        ),
+    )
+
+
+@register_workflow
 class BudgetValidation(Workflow):
     key = "finance.budget_validation"
     name = "Budget Validation"

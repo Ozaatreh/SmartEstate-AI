@@ -1,0 +1,1541 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartEstate AI — Assessment Presentation</title>
+<meta name="description" content="SmartEstate AI: an AI-assisted operating platform prototype for a real-estate developer. Presentation for a Business Transformation &amp; AI Specialist assessment panel.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<style>
+/* ------------------------------------------------------------------ fonts (self-hosted, SIL OFL) */
+@font-face { font-family: "Fraunces"; src: url("assets/fonts/fraunces-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Fraunces"; src: url("assets/fonts/fraunces-latin-wght-italic.woff2") format("woff2"); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("assets/fonts/inter-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "IBM Plex Sans Arabic"; src: url("assets/fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+
+/* ------------------------------------------------------------------ tokens */
+:root {
+  --ink: #0f1a2b;          /* night ink */
+  --ink-2: #14213d;
+  --ink-3: #22304d;
+  --clay: #a4532b;         /* desert clay */
+  --terra: #c46a3f;        /* terracotta, on dark */
+  --clay-soft: #f4e5da;
+  --sand: #f3eee6;         /* warm canvas */
+  --paper: #fbf8f3;
+  --line: #e5ded4;
+  --line-strong: #d3c9bb;
+  --text: #1d2533;
+  --text-2: #57514b;
+  --muted: #6e675f;
+  --ai: #5b4bc4;           /* violet: AI only */
+  --ai-soft: #efedfa;
+  --ok: #1f7a43; --ok-soft: #e6f2ea;
+  --warn: #a8530a; --warn-soft: #fbefe1;
+  --no: #b42318; --no-soft: #fbeae8;
+  --ease: cubic-bezier(.2, 0, 0, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  /* one design unit = 1/100 of a 16:9 stage that fits the viewport */
+  --u: min(1vw, 1.7778vh);
+  --serif: "Fraunces", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fs-body: calc(var(--u) * 1.06);
+  --fs-small: calc(var(--u) * .86);
+  --fs-tiny: calc(var(--u) * .74);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: var(--sand); color: var(--text); font-family: var(--sans); font-size: var(--fs-body); line-height: 1.45;
+  -webkit-font-smoothing: antialiased; overflow: hidden; font-feature-settings: "cv11", "ss01"; }
+img { display: block; max-width: 100%; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------------ deck + stage */
+#deck { position: fixed; inset: 0; }
+.slide { position: absolute; inset: 0; display: grid; place-items: center; background: var(--sand);
+  opacity: 0; visibility: hidden; transition: opacity .6s var(--ease), visibility 0s linear .6s; overflow: hidden; }
+.slide.active { opacity: 1; visibility: visible; transition: opacity .6s var(--ease), visibility 0s; z-index: 2; }
+.slide.dark { background: var(--ink); color: #f1ece4; }
+.stage { position: relative; width: calc(var(--u) * 100); height: calc(var(--u) * 56.25); padding: calc(var(--u) * 4.2) calc(var(--u) * 4.6) calc(var(--u) * 4.4);
+  display: flex; flex-direction: column; transform: translateX(calc(var(--u) * 1.6)); transition: transform .8s var(--ease-out); }
+.slide.from-right .stage { transform: translateX(calc(var(--u) * 1.6)); }
+.slide.from-left .stage { transform: translateX(calc(var(--u) * -1.6)); }
+.slide.active .stage, .slide.active.from-right .stage, .slide.active.from-left .stage { transform: none; }
+
+/* progressive reveal */
+[data-r] { opacity: 0; transform: translateY(calc(var(--u) * .9)); transition: opacity .7s var(--ease-out), transform .8s var(--ease-out);
+  transition-delay: calc(var(--d, 0) * 85ms + 180ms); }
+[data-r="fade"] { transform: none; }
+[data-r="left"] { transform: translateX(calc(var(--u) * -1.2)); }
+[data-r="scale"] { transform: scale(.97); }
+.slide.active [data-r] { opacity: 1; transform: none; }
+/* fragments: revealed one press at a time */
+[data-f] { opacity: .0; transform: translateY(calc(var(--u) * .6)); transition: opacity .6s var(--ease-out), transform .7s var(--ease-out); }
+[data-f].on { opacity: 1; transform: none; }
+
+/* ------------------------------------------------------------------ type */
+.eyebrow { display: flex; align-items: center; gap: calc(var(--u) * .8); font-size: var(--fs-tiny); font-weight: 600; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--clay); }
+.eyebrow b { font-family: var(--serif); font-style: italic; font-weight: 500; letter-spacing: 0; text-transform: none; font-size: calc(var(--u) * 1.05); }
+.eyebrow::after { content: ""; width: calc(var(--u) * 3); height: 1px; background: currentColor; opacity: .5; }
+.dark .eyebrow { color: var(--terra); }
+h1, h2, h3 { font-family: var(--serif); font-weight: 520; letter-spacing: -.02em; line-height: 1.04; font-optical-sizing: auto; }
+h1 { font-size: calc(var(--u) * 6.4); letter-spacing: -.035em; }
+h2 { font-size: calc(var(--u) * 3.15); margin-top: calc(var(--u) * 1); max-width: 42ch; text-wrap: balance; }
+h3 { font-size: calc(var(--u) * 1.45); letter-spacing: -.01em; }
+h2 em, h1 em { font-style: italic; color: var(--clay); font-weight: 450; }
+.dark h2 em, .dark h1 em { color: var(--terra); }
+.lede { margin-top: calc(var(--u) * 1); font-size: calc(var(--u) * 1.22); color: var(--text-2); max-width: 64ch; line-height: 1.45; }
+.dark .lede { color: #b9b2a8; }
+.small { font-size: var(--fs-small); }
+.tiny { font-size: var(--fs-tiny); }
+.muted { color: var(--muted); }
+.dark .muted { color: #9d968c; }
+.mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: .92em; letter-spacing: -.01em; }
+code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: .88em; background: rgba(20, 33, 61, .06); padding: .05em .35em; border-radius: 4px; }
+.dark code { background: rgba(255, 255, 255, .08); }
+.head { flex: none; }
+.body { flex: 1; min-height: 0; margin-top: calc(var(--u) * 2.2); }
+
+/* ------------------------------------------------------------------ chrome */
+.chrome-top { position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 20px; pointer-events: none; font-size: 12px; letter-spacing: .02em; color: var(--muted); transition: color .4s; }
+.chrome-top .brand { display: flex; gap: 9px; align-items: center; font-weight: 600; color: var(--text); }
+.chrome-top .brand img { width: 20px; height: 20px; }
+body.on-dark .chrome-top, body.on-dark .chrome-top .brand { color: #b9b2a8; }
+.chrome-bot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; align-items: center; gap: 14px; padding: 10px 16px 12px; font-size: 12px; color: var(--muted); }
+body.on-dark .chrome-bot { color: #9d968c; }
+.progress { position: fixed; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(20, 33, 61, .08); z-index: 11; }
+body.on-dark .progress { background: rgba(255, 255, 255, .08); }
+.progress i { display: block; height: 100%; width: 0; background: var(--clay); transition: width .6s var(--ease-out); }
+.ticks { display: flex; gap: 4px; flex: 1; justify-content: center; }
+.ticks button { width: 18px; height: 18px; display: grid; place-items: center; }
+.ticks button::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .25; transition: all .3s; }
+.ticks button.cur::before { width: 16px; border-radius: 3px; background: var(--clay); opacity: 1; }
+.ticks button:hover::before { opacity: .6; }
+.ctrl { display: flex; gap: 4px; }
+.ctrl button { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; transition: background .2s; }
+.ctrl button:hover { background: rgba(20, 33, 61, .07); }
+body.on-dark .ctrl button:hover { background: rgba(255, 255, 255, .08); }
+.ctrl svg { width: 16px; height: 16px; }
+.count { min-width: 64px; font-variant-numeric: tabular-nums; }
+.count b { color: var(--text); font-weight: 600; }
+body.on-dark .count b { color: #f1ece4; }
+button:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
+.help { position: fixed; inset: 0; z-index: 30; display: none; place-items: center; background: rgba(15, 26, 43, .5); backdrop-filter: blur(4px); }
+.help.open { display: grid; }
+.help > div { background: var(--paper); color: var(--text); border-radius: 14px; padding: 26px 30px; min-width: 320px; max-width: 92vw; box-shadow: 0 24px 60px -20px rgba(0,0,0,.4); font-size: 14px; }
+.help h3 { font-size: 22px; margin-bottom: 12px; }
+.help dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; }
+.help dt { font-weight: 600; white-space: nowrap; }
+.help dt kbd, .help dt span { display: inline-block; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; font-size: 12px; font-family: var(--sans); background: #fff; }
+.hint { position: fixed; right: 18px; bottom: 54px; z-index: 12; font-size: 12px; color: var(--muted); background: var(--paper); border: 1px solid var(--line); padding: 6px 10px; border-radius: 8px;
+  opacity: 0; transition: opacity .4s; pointer-events: none; }
+.hint.show { opacity: 1; }
+
+/* ------------------------------------------------------------------ components */
+.chip { display: inline-flex; align-items: center; gap: .45em; font-size: var(--fs-tiny); font-weight: 600; padding: .28em .7em; border-radius: 999px; white-space: nowrap; line-height: 1.3; letter-spacing: .01em; }
+.chip::before { content: ""; width: .5em; height: .5em; border-radius: 50%; background: currentColor; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.chip.part { background: var(--warn-soft); color: var(--warn); }
+.chip.no { background: var(--no-soft); color: var(--no); }
+.chip.ai { background: var(--ai-soft); color: var(--ai); }
+.chip.off { background: #ece8e2; color: #5b5650; }
+.chip.plain::before { display: none; }
+.chip.clay { background: var(--clay-soft); color: var(--clay); }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: calc(var(--u) * .9); padding: calc(var(--u) * 1.3) calc(var(--u) * 1.4); }
+.dark .card { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.1); }
+.grid { display: grid; gap: calc(var(--u) * 1.2); }
+.row { display: flex; gap: calc(var(--u) * 1.2); }
+.rule { height: 1px; background: var(--line); }
+.k { font-family: var(--serif); font-weight: 500; letter-spacing: -.02em; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
+
+/* screenshot frame */
+.shot { position: relative; background: #fff; border-radius: calc(var(--u) * .7); border: 1px solid var(--line-strong);
+  box-shadow: 0 1px 2px rgba(15,26,43,.05), 0 calc(var(--u)*1.6) calc(var(--u)*3.2) calc(var(--u)*-1.4) rgba(15,26,43,.28); overflow: hidden; }
+.shot .bar { display: flex; align-items: center; gap: calc(var(--u) * .35); height: calc(var(--u) * 1.5); padding: 0 calc(var(--u) * .7); background: #f2eee8; border-bottom: 1px solid var(--line); }
+.shot .bar i { width: calc(var(--u) * .5); height: calc(var(--u) * .5); border-radius: 50%; background: #d8d0c4; }
+.shot .bar span { margin-left: calc(var(--u) * .6); font-size: calc(var(--u) * .62); color: var(--muted); background: #fff; border-radius: 99px; padding: .1em .9em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
+.shot.darkframe .bar { background: #232629; border-color: #34383d; }
+.shot.darkframe .bar span { background: #191b1e; color: #a19c96; }
+.shot.darkframe .bar i { background: #4a4f55; }
+.shot .view { position: relative; overflow: hidden; aspect-ratio: var(--ar, 16 / 10); background: #f7f6f3; }
+.shot .view img { width: 100%; height: 100%; object-fit: cover; object-position: var(--ox, 50%) var(--oy, 0%);
+  transform: scale(var(--z, 1)); transform-origin: var(--ox, 50%) var(--oy, 0%); }
+.shot figcaption, .cap { font-size: var(--fs-tiny); color: var(--muted); margin-top: calc(var(--u) * .55); }
+.lens { position: absolute; z-index: 3; border-radius: calc(var(--u) * .6); border: 2px solid var(--clay); background-color: #fff; background-repeat: no-repeat;
+  box-shadow: 0 calc(var(--u)*1) calc(var(--u)*2.4) calc(var(--u)*-.8) rgba(15,26,43,.45); }
+.lens .tag { position: absolute; left: calc(var(--u) * .6); top: calc(var(--u) * -1); background: var(--clay); color: #fff; font-size: calc(var(--u) * .62); font-weight: 600;
+  padding: .2em .7em; border-radius: 99px; white-space: nowrap; letter-spacing: .02em; }
+.lens.ai { border-color: var(--ai); } .lens.ai .tag { background: var(--ai); }
+.pin { position: absolute; z-index: 2; width: calc(var(--u) * 1.3); height: calc(var(--u) * 1.3); border-radius: 50%; border: 2px solid var(--clay); background: rgba(164,83,43,.15);
+  box-shadow: 0 0 0 calc(var(--u)*.35) rgba(164,83,43,.12); }
+.label-demo { display: block; font-size: var(--fs-tiny); color: var(--warn); font-weight: 600; }
+
+/* ------------------------------------------------------------------ slide-specific */
+/* 01 opening */
+.s-open .stage { justify-content: space-between; }
+.s-open .mark { display: flex; gap: calc(var(--u)*1); align-items: center; font-size: var(--fs-small); color: #b9b2a8; letter-spacing: .04em; }
+.s-open .mark img { width: calc(var(--u)*2.2); height: calc(var(--u)*2.2); }
+.s-open h1 { margin-top: calc(var(--u) * 1.6); max-width: 12ch; }
+.s-open .sub { margin-top: calc(var(--u)*1.6); font-size: calc(var(--u)*1.5); color: #d6cfc4; max-width: 40ch; font-weight: 350; line-height: 1.35; }
+.s-open .meta { display: flex; flex-wrap: wrap; gap: calc(var(--u)*.4) calc(var(--u)*3); font-size: var(--fs-small); color: #9d968c; border-top: 1px solid rgba(255,255,255,.12); padding-top: calc(var(--u)*1.2); }
+.s-open .meta b { display: block; color: #f1ece4; font-weight: 600; margin-bottom: .2em; }
+.s-open .art { position: absolute; right: 0; top: calc(var(--u) * 6.5); width: calc(var(--u) * 52); height: calc(var(--u) * 36); }
+.s-open .art .shot { position: absolute; width: calc(var(--u) * 40); }
+.s-open .art .a1 { right: calc(var(--u)*6); top: 0; transform: rotate(-2deg); }
+.s-open .art .a2 { right: 0; top: calc(var(--u)*13); transform: rotate(1.5deg); }
+.s-open .glow { position: absolute; inset: 0; background: radial-gradient(60% 70% at 85% 30%, rgba(196,106,63,.16), transparent 70%); pointer-events: none; }
+.horizon { position: absolute; left: 0; right: 0; bottom: 0; height: 32%; pointer-events: none; opacity: .5;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(var(--u)*4), rgba(255,255,255,.025) calc(var(--u)*4) calc(var(--u)*4.05)); mask: linear-gradient(transparent, #000); }
+
+/* 02 challenge */
+.challenges { grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; align-content: center; gap: calc(var(--u)*1.6) calc(var(--u)*1.5); height: 100%; }
+.challenges .card { padding: calc(var(--u)*1.7) calc(var(--u)*1.8); }
+.challenges .card { display: flex; flex-direction: column; gap: calc(var(--u)*.8); position: relative; overflow: hidden; }
+.challenges .n { font-family: var(--serif); font-size: calc(var(--u)*2.4); color: var(--clay); line-height: 1; font-weight: 400; font-style: italic; }
+.challenges p { color: var(--text-2); font-size: calc(var(--u)*1.12); line-height: 1.45; }
+.challenges h3 { font-size: calc(var(--u)*1.6); }
+.challenges .who { margin-top: calc(var(--u)*.3); display: flex; gap: .4em; flex-wrap: wrap; }
+
+/* 03 vision */
+.vision { grid-template-columns: 1.05fr 1fr; gap: calc(var(--u)*5); height: 100%; align-items: center; }
+.vision blockquote { font-family: var(--serif); font-size: calc(var(--u)*3.7); line-height: 1.16; letter-spacing: -.02em; font-weight: 420; }
+.vision blockquote em { color: var(--terra); }
+.obj { display: grid; grid-template-columns: auto 1fr; gap: calc(var(--u)*1.9) calc(var(--u)*1.4); align-items: baseline; }
+.obj .id { font-family: var(--serif); font-style: italic; color: var(--terra); font-size: calc(var(--u)*1.6); }
+.obj div { font-size: calc(var(--u)*1.02); color: #d6cfc4; line-height: 1.45; }
+.obj div b { color: #f1ece4; font-weight: 600; display: block; font-size: calc(var(--u)*1.3); margin-bottom: .1em; }
+.principles { display: flex; gap: calc(var(--u)*.9); flex-wrap: wrap; margin-top: calc(var(--u)*3); }
+.principles span { border: 1px solid rgba(255,255,255,.18); border-radius: 99px; padding: .45em 1.1em; font-size: var(--fs-body); color: #e9e3d9; }
+.principles span.ai { border-color: rgba(169,156,240,.5); color: #c9c1f7; }
+
+/* 04 requirements */
+.req { grid-template-columns: 1fr 1fr; gap: 0 calc(var(--u)*2.4); align-content: center; }
+.req .r { display: grid; grid-template-columns: calc(var(--u)*2.4) 1fr auto; gap: calc(var(--u)*.2) calc(var(--u)*.9); padding: calc(var(--u)*1) 0; border-bottom: 1px solid var(--line); align-items: center; }
+.req .r .id { font-size: var(--fs-tiny); color: var(--muted); font-variant-numeric: tabular-nums; }
+.req .r .t { font-weight: 600; font-size: calc(var(--u)*1.12); }
+.req .r .t small { font-weight: 500; color: var(--muted); font-size: var(--fs-tiny); margin-left: .4em; }
+.req .r .e { grid-column: 2 / 4; font-size: var(--fs-small); color: var(--text-2); line-height: 1.35; }
+.tally { display: flex; gap: calc(var(--u)*2.2); align-items: center; }
+.tally .k { font-size: calc(var(--u)*2.4); }
+.tally > div { display: flex; align-items: baseline; gap: calc(var(--u)*.6); }
+.bar3 { display: flex; height: calc(var(--u)*.55); border-radius: 99px; overflow: hidden; width: calc(var(--u)*20); background: var(--line); }
+.bar3 i { display: block; height: 100%; transform-origin: left; transform: scaleX(0); transition: transform 1s var(--ease-out) .5s; }
+.slide.active .bar3 i { transform: none; }
+
+/* 05 overview */
+.ov { grid-template-columns: 1.05fr 1fr; gap: calc(var(--u)*3); height: 100%; align-items: center; }
+.ov .stack-shots { align-self: stretch; }
+.domains { grid-template-columns: repeat(2, 1fr); gap: calc(var(--u)*1.6) calc(var(--u)*1.4); }
+.domain { border-left: 2px solid var(--clay); padding: calc(var(--u)*.2) 0 calc(var(--u)*.2) calc(var(--u)*1); }
+.domain.ai { border-color: var(--ai); }
+.domain h3 { font-size: calc(var(--u)*1.3); font-family: var(--sans); font-weight: 650; letter-spacing: 0; }
+.domain p { font-size: var(--fs-body); color: var(--text-2); margin-top: .25em; line-height: 1.42; }
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: calc(var(--u)*.8); margin-top: calc(var(--u)*2.6); }
+.stats div { border-top: 1px solid var(--line-strong); padding-top: calc(var(--u)*.6); }
+.stats .k { font-size: calc(var(--u)*3); color: var(--ink); }
+.stats span { display: block; font-size: var(--fs-small); color: var(--muted); margin-top: .35em; }
+.stack-shots { position: relative; }
+.stack-shots .shot.back { position: absolute; width: 74%; right: 0; bottom: 0; }
+.stack-shots .shot.front { position: relative; width: 82%; }
+
+/* 06/07/08 module slides */
+.mod { grid-template-columns: calc(var(--u)*33) 1fr; gap: calc(var(--u)*3); height: 100%; }
+.facts { display: flex; flex-direction: column; gap: calc(var(--u)*1.05); }
+.fact { display: grid; grid-template-columns: calc(var(--u)*1.8) 1fr; gap: calc(var(--u)*.6); }
+.fact .ix { font-family: var(--serif); font-style: italic; color: var(--clay); font-size: calc(var(--u)*1.1); line-height: 1.25; }
+.fact b { display: block; font-weight: 650; font-size: var(--fs-body); }
+.fact p { font-size: var(--fs-small); color: var(--text-2); margin-top: .15em; line-height: 1.42; }
+.lifecycle { display: flex; flex-wrap: wrap; gap: calc(var(--u)*.35); align-items: center; margin-top: .35em; }
+.lifecycle span { font-size: var(--fs-tiny); padding: .2em .65em; background: #fff; border: 1px solid var(--line-strong); border-radius: 6px; white-space: nowrap; }
+.lifecycle i { font-style: normal; color: var(--muted); font-size: var(--fs-tiny); }
+.lifecycle span.end { background: var(--ink); color: #fff; border-color: var(--ink); }
+.shots { position: relative; height: 100%; }
+.band { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: calc(var(--u)*1); }
+
+/* routing ladder */
+.ladder { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: .5em; border-radius: 8px; overflow: hidden; }
+.ladder div { background: #fff; border: 1px solid var(--line); padding: .45em .6em; font-size: var(--fs-tiny); line-height: 1.3; }
+.ladder div b { display: block; font-size: var(--fs-small); color: var(--ink); }
+
+/* 09 workflows */
+.lanes { display: flex; flex-direction: column; gap: calc(var(--u)*1.05); height: 100%; }
+.lane { flex: 1; display: grid; grid-template-columns: calc(var(--u)*12) 1fr; gap: calc(var(--u)*1.2); align-items: center; position: relative;
+  background: var(--paper); border: 1px solid var(--line); border-radius: calc(var(--u)*.9); padding: calc(var(--u)*.95) calc(var(--u)*1.2); }
+.lane .ln { border-right: 1px solid var(--line); padding-right: calc(var(--u)*1); }
+.lane .ln b { display: block; font-family: var(--serif); font-size: calc(var(--u)*1.3); font-weight: 520; letter-spacing: -.01em; }
+.lane .ln span { font-size: calc(var(--u)*.62); color: var(--muted); overflow-wrap: normal; line-height: 1.5; display: block; margin-top: .3em; }
+.lane .ln span code { font-size: 1em; }
+.lane .ln .sw { display: inline-block; width: calc(var(--u)*.7); height: calc(var(--u)*.7); border-radius: 3px; background: var(--c); margin-right: .4em; vertical-align: .05em; }
+.flow { position: relative; display: flex; align-items: stretch; gap: 0; }
+.node { position: relative; z-index: 1; flex: 1 1 0; min-width: 0; padding: calc(var(--u)*.5) calc(var(--u)*.55); border-radius: calc(var(--u)*.5); background: #fff; border: 1px solid var(--line-strong);
+  opacity: 0; transform: translateY(calc(var(--u)*.5)); transition: opacity .5s var(--ease-out), transform .6s var(--ease-out), border-color .4s, box-shadow .4s;
+  transition-delay: calc(var(--n, 0) * 140ms + 120ms); }
+.node b { display: block; font-size: calc(var(--u)*.86); font-weight: 650; line-height: 1.2; }
+.node span { display: block; font-size: calc(var(--u)*.66); color: var(--muted); line-height: 1.3; margin-top: .25em; }
+.node.key { border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c); }
+.node.end { background: var(--c); border-color: var(--c); color: #fff; }
+.node.end span { color: rgba(255,255,255,.8); }
+.node.ai { border-style: dashed; border-color: var(--ai); }
+.arrow { flex: 0 0 calc(var(--u)*1.25); position: relative; align-self: center; height: 2px; }
+.arrow::before { content: ""; position: absolute; left: 12%; right: 18%; top: 0; height: 2px; background: var(--c); transform: scaleX(0); transform-origin: left;
+  transition: transform .45s var(--ease) calc(var(--n, 0) * 140ms + 200ms); }
+.arrow::after { content: ""; position: absolute; right: 12%; top: -3px; border: 4px solid transparent; border-left: 5px solid var(--c); border-right: 0; opacity: 0; transition: opacity .2s calc(var(--n, 0) * 140ms + 560ms); }
+.lane.on .node { opacity: 1; transform: none; }
+.lane.on .arrow::before { transform: none; }
+.lane.on .arrow::after { opacity: 1; }
+.branch { position: absolute; font-size: calc(var(--u)*.64); color: var(--c); font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: .35em;
+  opacity: 0; transition: opacity .5s calc(var(--n, 0) * 140ms + 300ms); }
+.lane.on .branch { opacity: 1; }
+.branch svg { width: calc(var(--u)*1.4); height: calc(var(--u)*1); overflow: visible; }
+.pulse { position: absolute; top: 50%; width: calc(var(--u)*.5); height: calc(var(--u)*.5); margin-top: calc(var(--u)*-.25); border-radius: 50%; background: var(--c); opacity: 0; pointer-events: none; }
+.lane.on .pulse { animation: travel 5.5s var(--ease) 1.8s infinite; }
+@keyframes travel { 0% { left: 0; opacity: 0; } 6% { opacity: .9; } 88% { opacity: .9; } 100% { left: 100%; opacity: 0; } }
+.wf-legend { display: flex; gap: calc(var(--u)*1.2); font-size: var(--fs-tiny); color: var(--muted); align-items: center; white-space: nowrap; flex-wrap: wrap; justify-content: flex-end; max-width: calc(var(--u)*44); }
+.wf-legend i { display: inline-block; width: calc(var(--u)*1.4); height: calc(var(--u)*.8); border-radius: 3px; border: 1px solid var(--line-strong); background: #fff; vertical-align: -.1em; margin-right: .4em; }
+.wf-legend i.k { border: 2px solid var(--clay); }
+.wf-legend i.a { border: 1px dashed var(--ai); }
+.wf-legend i.e { background: var(--ink); border-color: var(--ink); }
+.presskey { font-size: var(--fs-tiny); color: var(--muted); }
+.presskey kbd { font-family: var(--sans); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 0 .4em; background: #fff; }
+
+/* 10 engine */
+.engine { grid-template-columns: 1.75fr 1fr; gap: calc(var(--u)*2.8); height: 100%; align-items: center; }
+.eng-svg { width: 100%; height: auto; overflow: visible; }
+.eng-svg text { font-family: var(--sans); }
+.eng-svg .bx { fill: #fff; stroke: var(--line-strong); }
+.eng-svg .bx.pg { fill: var(--ink); stroke: var(--ink); }
+.eng-svg .t1 { font-size: 15px; font-weight: 650; fill: var(--text); }
+.eng-svg .t2 { font-size: 11.5px; fill: var(--muted); }
+.eng-svg .tw { fill: #f1ece4; } .eng-svg .tw2 { fill: #b9b2a8; }
+.eng-svg .ln { stroke: var(--line-strong); stroke-width: 1.5; fill: none; }
+.eng-svg .fl { stroke: var(--clay); stroke-width: 2; fill: none; stroke-dasharray: 5 7; }
+.slide.active .eng-svg .fl, .slide.active .arch .fl { animation: dash 1.1s linear infinite; }
+@keyframes dash { to { stroke-dashoffset: -24; } }
+.eng-svg g[data-r] { transform: none; }
+.guar { display: flex; flex-direction: column; gap: calc(var(--u)*1.1); }
+.guar .g { display: grid; grid-template-columns: 1fr; gap: calc(var(--u)*.3); padding-bottom: calc(var(--u)*1.1); border-bottom: 1px solid var(--line); }
+.guar .g b { font-weight: 650; font-size: var(--fs-body); }
+.guar .g p { font-size: calc(var(--u)*.98); color: var(--text-2); line-height: 1.45; }
+.wfl { display: flex; flex-wrap: wrap; gap: calc(var(--u)*.4); }
+.wfl code { font-size: calc(var(--u)*.66); background: #fff; border: 1px solid var(--line); }
+
+/* 11 AI architecture */
+.aiarch { display: grid; grid-template-columns: 1fr calc(var(--u)*2.2) 1.25fr calc(var(--u)*2.2) .8fr; align-items: center; height: 100%; }
+.aiarch .conn { align-self: stretch; }
+.aicol { display: flex; flex-direction: column; gap: calc(var(--u)*.9); }
+.aicol > h3 { font-family: var(--sans); font-size: var(--fs-tiny); font-weight: 650; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: calc(var(--u)*.2); }
+.cap { border: 1px solid var(--line); background: var(--paper); border-radius: calc(var(--u)*.6); padding: calc(var(--u)*.95) calc(var(--u)*1.1); display: flex; justify-content: space-between; align-items: center; gap: .6em; }
+.cap b { font-size: var(--fs-body); font-weight: 650; display: block; }
+.cap span.m { font-size: var(--fs-small); color: var(--muted); }
+.gateway { border: 1.5px solid var(--ai); border-radius: calc(var(--u)*1); background: linear-gradient(180deg, var(--ai-soft), #fff 60%); padding: calc(var(--u)*1.6) calc(var(--u)*1.7); display: flex; flex-direction: column; gap: calc(var(--u)*1.1); }
+.gateway h3 { color: var(--ai); }
+.gateway .gl { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u)*1.1) calc(var(--u)*1.4); }
+.gateway .gl div { font-size: var(--fs-small); color: var(--text-2); line-height: 1.42; }
+.gateway .gl div b { display: block; font-size: var(--fs-body); color: var(--text); font-weight: 650; }
+.conn { position: relative; }
+.conn::before { content: ""; position: absolute; top: 50%; left: 10%; right: 10%; height: 2px; background: repeating-linear-gradient(90deg, var(--ai) 0 6px, transparent 6px 11px); background-size: 22px 2px; }
+.slide.active .conn::before { animation: slide-dash .8s linear infinite; }
+@keyframes slide-dash { to { background-position: 22px 0; } }
+.conn::after { content: ""; position: absolute; top: calc(50% - 4px); right: 6%; border: 5px solid transparent; border-left: 6px solid var(--ai); border-right: 0; }
+.claude { border-radius: calc(var(--u)*1); background: var(--ink); color: #f1ece4; padding: calc(var(--u)*1.6); display: flex; flex-direction: column; gap: calc(var(--u)*.6); justify-content: center; }
+.claude h3 { color: #fff; }
+.claude p { font-size: var(--fs-small); color: #b9b2a8; line-height: 1.45; }
+
+/* 12 use cases */
+.uc { grid-template-columns: repeat(6, 1fr); gap: calc(var(--u)*1.3); align-content: center; height: 100%; }
+.uc .card { grid-column: span 2; padding: calc(var(--u)*1.5) calc(var(--u)*1.6); }
+.uc .card:nth-child(n+4) { grid-column: span 3; }
+.uc .card { display: flex; flex-direction: column; gap: calc(var(--u)*.7); }
+.uc .card h3 { font-size: calc(var(--u)*1.45); }
+.uc .card p { font-size: var(--fs-body); color: var(--text-2); line-height: 1.45; }
+.uc .card .st { display: flex; gap: .4em; flex-wrap: wrap; }
+.uc .card .ev { margin-top: auto; padding-top: .7em !important; font-size: var(--fs-small); color: var(--muted); border-top: 1px dashed var(--line-strong); padding-top: .55em; }
+.uc .card.aiedge { border-top: 3px solid var(--ai); }
+.uc .card.det { border-top: 3px solid var(--ink); }
+
+/* 13 stack */
+.stack { grid-template-columns: repeat(4, 1fr); gap: calc(var(--u)*1.6); height: 100%; align-content: center; }
+.layer { display: flex; flex-direction: column; gap: calc(var(--u)*.35); }
+.layer > h3 { font-family: var(--sans); font-size: var(--fs-tiny); letter-spacing: .14em; text-transform: uppercase; color: var(--clay); font-weight: 650; padding-bottom: calc(var(--u)*.5); border-bottom: 2px solid var(--ink); margin-bottom: calc(var(--u)*.3); }
+.layer.ai > h3 { color: var(--ai); border-color: var(--ai); }
+.tech { display: flex; justify-content: space-between; align-items: baseline; gap: .6em; padding: calc(var(--u)*.78) 0; border-bottom: 1px solid var(--line); font-size: var(--fs-body); }
+.tech b { font-weight: 600; }
+.tech span { font-size: var(--fs-small); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tech em { font-style: normal; font-size: calc(var(--u)*.72); color: var(--muted); display: block; font-weight: 400; }
+.sub-h { font-size: calc(var(--u)*.66); color: var(--muted); text-transform: uppercase; letter-spacing: .12em; margin-top: calc(var(--u)*.7); }
+
+/* 14 architecture */
+.arch { width: 100%; height: 100%; overflow: visible; }
+.arch text { font-family: var(--sans); }
+.arch .b { fill: #fff; stroke: var(--line-strong); stroke-width: 1.2; }
+.arch .b.soft { fill: var(--paper); }
+.arch .b.ink { fill: var(--ink); stroke: var(--ink); }
+.arch .b.ai { fill: var(--ai-soft); stroke: var(--ai); stroke-width: 1.5; }
+.arch .b.ext { fill: none; stroke: var(--line-strong); stroke-dasharray: 4 4; }
+.arch .h { font-size: 17px; font-weight: 650; fill: var(--text); }
+.arch .s { font-size: 12.5px; fill: var(--muted); }
+.arch .w { fill: #f1ece4; } .arch .w2 { fill: #b9b2a8; }
+.arch .ai-t { fill: var(--ai); }
+.arch .ln { stroke: var(--line-strong); stroke-width: 1.6; fill: none; }
+.arch .fl { stroke: var(--clay); stroke-width: 2.2; fill: none; stroke-dasharray: 6 8; }
+.arch .fl.ai { stroke: var(--ai); }
+.arch .fl.ext { stroke: var(--muted); }
+.arch .zone { font-size: 11px; font-weight: 650; letter-spacing: .14em; fill: var(--muted); text-transform: uppercase; }
+.arch-list, .eng-list { display: none; }
+.eng-list { flex-direction: column; gap: 10px; }
+.eng-list .card b { display: block; } .eng-list .card span { font-size: 13.5px; color: var(--text-2); }
+
+/* 15 security */
+.sec { display: grid; grid-template-columns: 1fr calc(var(--u)*25); gap: calc(var(--u)*2.6); height: 100%; align-items: center; }
+.strata { display: flex; flex-direction: column; gap: calc(var(--u)*.55); justify-content: center; }
+.stratum { display: grid; grid-template-columns: calc(var(--u)*12.5) 1fr; align-items: center; gap: calc(var(--u)*1.2); border-radius: calc(var(--u)*.6);
+  padding: calc(var(--u)*.75) calc(var(--u)*1.3); background: var(--paper); border: 1px solid var(--line); margin-left: calc(var(--i) * var(--u) * 1.1); margin-right: calc(var(--i) * var(--u) * 1.1); }
+.stratum b .ln { font-family: var(--serif); font-style: italic; font-weight: 500; color: var(--clay); margin-right: .1em; }
+.stratum.core b .ln { color: var(--terra); } .stratum.ai b .ln { color: var(--ai); }
+.proof { list-style: none; display: flex; flex-direction: column; gap: calc(var(--u)*.75); }
+.proof li { display: grid; grid-template-columns: calc(var(--u)*1.4) 1fr; font-size: var(--fs-small); color: var(--text-2); line-height: 1.42; }
+.proof li::before { content: "✓"; color: var(--ok); font-weight: 700; }
+.gov h3 { font-size: calc(var(--u)*1.45); }
+.stratum b { font-size: var(--fs-body); white-space: nowrap; font-weight: 650; display: flex; align-items: center; gap: .55em; }
+.stratum b::before { content: none; }
+.stratum.ai { border-color: rgba(91,75,196,.4); background: var(--ai-soft); }
+.stratum.ai b::before { background: var(--ai); }
+.stratum.core { background: var(--ink); border-color: var(--ink); color: #f1ece4; }
+.stratum.core b::before { background: var(--terra); }
+.stratum.core p { color: #c9c2b7; }
+.stratum p { font-size: calc(var(--u)*.84); color: var(--text-2); line-height: 1.4; }
+.gov { display: flex; flex-direction: column; gap: calc(var(--u)*1.3); justify-content: center; }
+.gov .q { font-family: var(--serif); font-size: calc(var(--u)*1.6); line-height: 1.2; letter-spacing: -.01em; }
+
+/* 16 extras */
+.ex { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u)*.9); }
+.ex { height: 100%; grid-auto-rows: auto; align-content: center; gap: calc(var(--u)*1.3); }
+.ex .card { padding: calc(var(--u)*1.3) calc(var(--u)*1.4); display: flex; flex-direction: column; gap: calc(var(--u)*.8); }
+.ex .card h3 { font-size: calc(var(--u)*1.32); font-family: var(--sans); font-weight: 650; letter-spacing: 0; }
+.ex .card dl { display: grid; grid-template-columns: calc(var(--u)*4.4) 1fr; gap: calc(var(--u)*.7) calc(var(--u)*.8); font-size: calc(var(--u)*1); line-height: 1.42; }
+.ex .card dt { color: var(--clay); font-weight: 650; text-transform: uppercase; letter-spacing: .08em; font-size: calc(var(--u)*.66); padding-top: .25em; }
+.ex .card dd { color: var(--text-2); }
+.ex .card .note { font-size: var(--fs-small); line-height: 1.4; margin-top: calc(var(--u)*.4) !important; color: var(--warn); margin-top: auto; }
+
+/* 17 gallery */
+.gal { display: grid; grid-template-columns: 1.35fr 1fr 1fr; grid-template-rows: 1fr 1fr; gap: calc(var(--u)*1.1); height: 100%; }
+.gal .g1 { grid-row: 1 / 3; }
+.gal figure { display: flex; flex-direction: column; min-height: 0; }
+.gal .shot { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.gal .shot .view { flex: 1; aspect-ratio: auto; }
+.gal2 { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; gap: calc(var(--u)*1.1) calc(var(--u)*1.2); height: 100%; }
+.gal2 figure { display: flex; flex-direction: column; min-height: 0; }
+.gal2 .shot { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.gal2 .shot .view { flex: 1; aspect-ratio: auto; }
+.gal2 figcaption { font-size: var(--fs-tiny); color: var(--muted); margin-top: calc(var(--u)*.45); line-height: 1.35; }
+.gal figcaption { font-size: var(--fs-tiny); color: var(--muted); margin-top: calc(var(--u)*.5); line-height: 1.35; }
+
+/* 18 testing */
+.tests { display: grid; grid-template-columns: calc(var(--u)*31) 1fr; gap: calc(var(--u)*3.6); height: 100%; align-items: center; }
+.big { font-size: calc(var(--u)*13.5); color: var(--ink); line-height: .9; }
+.tb { display: flex; flex-direction: column; gap: calc(var(--u)*1.9); }
+.tb .t { display: grid; grid-template-columns: calc(var(--u)*15) 1fr calc(var(--u)*6.5); align-items: center; gap: calc(var(--u)*1); }
+.tb .t b { font-size: var(--fs-body); font-weight: 650; display: block; }
+.tb .t span { font-size: var(--fs-small); color: var(--muted); }
+.tb .track { height: calc(var(--u)*2); background: rgba(20,33,61,.06); border-radius: 4px; overflow: hidden; display: flex; }
+.tb .track i { height: 100%; transform: scaleX(0); transform-origin: left; transition: transform 1.2s var(--ease-out); transition-delay: calc(var(--d, 0) * 150ms + 400ms); }
+.slide.active .tb .track i { transform: none; }
+.tb .num { font-family: var(--serif); font-size: calc(var(--u)*2.6); text-align: right; font-variant-numeric: tabular-nums; }
+.checks { display: grid; grid-template-columns: 1fr; gap: calc(var(--u)*.45); margin-top: calc(var(--u)*1.2); }
+.checks div { font-size: var(--fs-body); display: flex; gap: .55em; align-items: baseline; }
+.checks div::before { content: "✓"; color: var(--ok); font-weight: 700; }
+.checks div.x::before { content: "–"; color: var(--muted); }
+.cover { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--u)*.9) calc(var(--u)*1.4); }
+.cover div { font-size: var(--fs-small); color: var(--text-2); border-left: 2px solid var(--line-strong); padding-left: .7em; line-height: 1.35; }
+
+/* 19 limits */
+.lim { display: grid; grid-template-columns: 1.15fr 1fr; gap: calc(var(--u)*3.4); height: 100%; align-items: center; }
+.lim ul { list-style: none; display: flex; flex-direction: column; gap: calc(var(--u)*1.1); }
+.lim li { display: grid; grid-template-columns: calc(var(--u)*8.4) 1fr; gap: calc(var(--u)*.8); font-size: var(--fs-body); line-height: 1.42; padding-bottom: calc(var(--u)*.9); border-bottom: 1px solid var(--line); align-items: baseline; }
+.lim li b { font-weight: 650; }
+.lim li span { color: var(--text-2); }
+.opp { display: flex; flex-direction: column; gap: calc(var(--u)*1.6); }
+.opp .o { display: grid; grid-template-columns: calc(var(--u)*2.2) 1fr; gap: calc(var(--u)*.6); }
+.opp .o .ix { font-family: var(--serif); font-style: italic; font-size: calc(var(--u)*1.5); color: var(--clay); line-height: 1; }
+.opp .o b { display: block; font-size: calc(var(--u)*1.2); font-weight: 650; }
+.opp .o p { font-size: var(--fs-body); color: var(--text-2); line-height: 1.45; margin-top: .2em; }
+
+/* 20 closing */
+.s-close .stage { justify-content: center; }
+.s-close h1 { font-size: calc(var(--u)*6.6); max-width: 16ch; }
+.takeaways { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--u)*2); margin-top: calc(var(--u)*3.6); border-top: 1px solid rgba(255,255,255,.14); padding-top: calc(var(--u)*1.6); }
+.takeaways b { display: block; font-family: var(--serif); font-size: calc(var(--u)*1.8); font-weight: 500; color: #fff; margin-bottom: .3em; letter-spacing: -.01em; }
+.takeaways span { font-size: calc(var(--u)*1.08); color: #b9b2a8; line-height: 1.5; display: block; }
+.thanks { margin-top: calc(var(--u)*3.4); display: flex; justify-content: space-between; align-items: end; font-size: var(--fs-small); color: #9d968c; }
+.thanks em { font-family: var(--serif); font-size: calc(var(--u)*2.8); color: var(--terra); font-style: italic; }
+
+.demo-note { margin-top: calc(var(--u)*1); font-size: calc(var(--u)*.68); color: var(--muted); display: flex; gap: .5em; align-items: center; }
+.dark .demo-note { color: #8d867c; }
+.demo-note::before { content: ""; width: .55em; height: .55em; border-radius: 50%; background: var(--warn); }
+
+/* ------------------------------------------------------------------ narrow / portrait: scrollable slides */
+@media (max-width: 900px), (orientation: portrait) {
+  :root { --u: 7.4px; --fs-body: 15px; --fs-small: 13.5px; --fs-tiny: 12px; }
+  .slide { display: block; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+  .stage { width: 100%; height: auto; min-height: 100%; padding: 60px 16px 84px; transform: translateY(10px); }
+  .slide.from-left .stage, .slide.from-right .stage { transform: translateY(10px); }
+  h1 { font-size: 46px; }
+  h2 { font-size: 28px; }
+  h3 { font-size: 18px; }
+  .lede { font-size: 16px; }
+  .eyebrow b { font-size: 14px; }
+  .body { margin-top: 22px; }
+  .grid, .challenges, .vision, .req, .ov, .mod, .engine, .uc, .stack, .sec, .ex, .tests, .lim, .domains, .takeaways, .cover, .checks { grid-template-columns: 1fr !important; height: auto !important; }
+  .challenges, .ex { grid-auto-rows: auto; }
+  .uc .card, .uc .card:nth-child(n+4) { grid-column: auto !important; }
+  .uc .card h3, .ex .card h3, .domain h3 { font-size: 18px; }
+  .ex .card dl { font-size: 13.5px; grid-template-columns: 56px 1fr; } .ex .card dt { font-size: 10px; }
+  .guar .g p { font-size: 13.5px; } .opp .o b { font-size: 16px; } .tb .t span { font-size: 12px; }
+  .gateway .gl div { font-size: 13px; } .tech em { font-size: 11px; }
+  .obj .id { font-size: 15px; } .obj div { font-size: 13.5px; } .obj div b { font-size: 15px; } .stratum b { white-space: normal; } .stratum p { font-size: 13px; } .proof li { font-size: 13.5px; } .gov h3 { font-size: 18px; } .principles span { font-size: 13px; } .wfl code { font-size: 11px; } .sub-h { font-size: 11px; } .lede { font-size: 16px !important; }
+  .eng-svg { display: none; } .eng-list { display: flex; }
+  .challenges h3 { font-size: 19px; } .challenges p { font-size: 15px; }
+  .big { font-size: 84px !important; }
+  .stats { grid-template-columns: repeat(3, 1fr); }
+  .stats .k { font-size: 26px; }
+  .s-open .art { position: relative; right: auto; top: auto; width: 100%; height: auto; margin: 26px 0; }
+  .s-open .art .shot { position: relative; width: 100%; right: auto; top: auto; transform: none; }
+  .s-open .art .a2 { display: none; }
+  .s-open h1 { font-size: 50px; }
+  .s-open .sub { font-size: 18px; }
+  .s-open .meta { flex-wrap: wrap; gap: 14px 26px; }
+  .vision blockquote { font-size: 26px; }
+  .req .r .t { font-size: 15px; }
+  .tally { flex-wrap: wrap; gap: 14px 22px; }
+  .tally .k { font-size: 30px; }
+  .bar3 { width: 100%; }
+  .stack-shots .shot.back { position: relative; width: 100%; margin-top: 14px; }
+  .stack-shots .shot.front { width: 100%; }
+  .shots { height: auto; }
+  .band { position: relative; flex-direction: column; margin-top: 14px; }
+  .band > * { width: 100% !important; }
+  .lens { display: none; }
+  .pin { display: none; }
+  .lane { grid-template-columns: 1fr; gap: 10px; }
+  .lane .ln { border-right: 0; border-bottom: 1px solid var(--line); padding: 0 0 8px; }
+  .lane .ln b { font-size: 19px; }
+  .flow { flex-direction: column; gap: 0; }
+  .node { flex: none; }
+  .node b { font-size: 14px; } .node span { font-size: 12px; }
+  .arrow { flex: none; height: 14px; width: 2px; margin-left: 18px; }
+  .arrow::before { left: 0; right: auto; top: 0; bottom: 0; width: 2px; height: 100%; transform-origin: top; transform: scaleY(0); }
+  .lane.on .arrow::before { transform: none; }
+  .arrow::after { display: none; }
+  .branch { position: static; margin: 4px 0 0 18px; font-size: 12px; white-space: normal; }
+  .pulse { display: none; }
+  .aiarch { grid-template-columns: 1fr; gap: 0; height: auto; }
+  .conn { height: 26px; }
+  .conn::before { left: 50%; right: auto; top: 0; bottom: 0; width: 2px; height: 100%; background: var(--ai); }
+  .conn::after { display: none; }
+  .gateway .gl { grid-template-columns: 1fr; }
+  .arch { display: none; }
+  .arch-list { display: flex; flex-direction: column; gap: 10px; }
+  .arch-list .card b { display: block; }
+  .stratum { grid-template-columns: 1fr; margin: 0 !important; gap: 4px; }
+  .gal, .gal2 { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
+  .gal .g1 { grid-row: auto; }
+  .gal .shot .view, .gal2 .shot .view { aspect-ratio: 16 / 10; flex: none; }
+  .big { font-size: 84px; }
+  .tb .t { grid-template-columns: 1fr 64px; }
+  .tb .t .track { grid-column: 1 / 3; grid-row: 2; }
+  .tb .num { font-size: 24px; }
+  .lim li { grid-template-columns: 1fr; gap: 2px; }
+  .guar .g { grid-template-columns: 1fr; gap: 2px; }
+  .fact .ix { font-size: 16px; }
+  .ex .card dl { grid-template-columns: 52px 1fr; }
+  .ex .card dt { font-size: 10px; }
+  .wf-legend { flex-wrap: wrap; gap: 8px 14px; }
+  .demo-note { position: static; margin-top: 18px; font-size: 11px; }
+  .thanks { flex-direction: column; align-items: start; gap: 12px; }
+  .s-close h1 { font-size: 40px; }
+  .takeaways b { font-size: 18px; } .takeaways span { font-size: 14px; } .thanks em { font-size: 24px; }
+  .shots > figure { position: relative !important; width: 100% !important; right: auto !important; bottom: auto !important; margin-top: 14px; }
+  .head { display: block !important; }
+  .head > div[style*="text-align"], .head > p { text-align: left !important; margin-top: 12px; max-width: none !important; }
+  .head .bar3 { margin-left: 0 !important; }
+  .head h2 { font-size: 28px !important; }
+  .stage { padding-top: 60px !important; }
+  .wf-legend { max-width: none; justify-content: flex-start; margin-top: 12px; }
+  .lane .ln span { font-size: 11px; }
+  .lens .tag { top: -14px; }
+  .ticks { display: none; }
+  .chrome-bot { justify-content: space-between; background: linear-gradient(transparent, var(--sand) 40%); }
+  body.on-dark .chrome-bot { background: linear-gradient(transparent, var(--ink) 40%); }
+  .chrome-top { background: var(--sand); padding: 10px 16px; }
+  body.on-dark .chrome-top { background: var(--ink); }
+  .hint { display: none; }
+  .shot .bar { height: 18px; } .shot .bar i { width: 6px; height: 6px; } .shot .bar span { font-size: 9px; }
+  .lens .tag { font-size: 10px; }
+}
+
+/* ------------------------------------------------------------------ reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; transition-delay: 0s !important; animation: none !important; }
+}
+
+/* ------------------------------------------------------------------ print / PDF: one slide per page, everything shown */
+@media print {
+  @page { size: 1600px 900px; margin: 0; }
+  :root { --u: 16px; --fs-body: 17px; --fs-small: 13.8px; --fs-tiny: 11.8px; }
+  html, body { height: auto; overflow: visible; background: #fff; }
+  #deck { position: static; }
+  .slide { position: relative; inset: auto; width: 1600px; height: 900px; opacity: 1 !important; visibility: visible !important; display: grid !important; page-break-after: always; break-after: page; overflow: hidden; }
+  .stage { transform: none !important; }
+  [data-r], [data-f], .node, .branch { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .arrow::before { transform: none !important; } .arrow::after { opacity: 1 !important; }
+  .bar3 i, .tb .track i { transform: none !important; }
+  .pulse { display: none; }
+  .chrome-top, .chrome-bot, .progress, .help, .hint, .presskey { display: none !important; }
+  * { animation: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<div class="chrome-top" aria-hidden="true">
+  <div class="brand"><img src="assets/logo.svg" alt=""> SmartEstate AI</div>
+  <div id="sectionLabel">Introduction</div>
+</div>
+
+<main id="deck" aria-live="polite">
+
+<!-- ============================================================ 01 OPENING -->
+<section class="slide dark s-open" data-section="Introduction" data-title="SmartEstate AI">
+  <div class="glow"></div><div class="horizon"></div>
+  <div class="stage">
+    <div>
+      <div class="mark" data-r="fade"><img src="assets/logo.svg" alt=""> Business Transformation &amp; AI Specialist · Assessment</div>
+      <h1 data-r>SmartEstate <em>AI</em></h1>
+      <p class="sub" data-r>A working prototype of one operating platform for a real-estate developer: operations, sales, marketing and governed AI.</p>
+    </div>
+    <div class="art" aria-hidden="true">
+      <figure class="shot a1" data-r="scale" style="--d:3"><div class="bar"><i></i><i></i><i></i><span>localhost:5174 · staff dashboard</span></div><div class="view" style="--ar:16/9.6"><img src="assets/shots/d-pr-detail.jpg" alt=""></div></figure>
+      <figure class="shot a2" data-r="scale" style="--d:5"><div class="bar"><i></i><i></i><i></i><span>localhost:5173 · public website</span></div><div class="view" style="--ar:16/9"><img src="assets/shots/w-home.jpg" alt=""></div></figure>
+    </div>
+    <div class="meta" data-r>
+      <div><b>Modular monolith</b>FastAPI · SQLAlchemy · PostgreSQL</div>
+      <div><b>Two React apps</b>Staff dashboard · Public website</div>
+      <div><b>Own Python automation engine</b>PostgreSQL job queue</div>
+      <div><b>Claude via one AI gateway</b>Kill switch · cost cap · usage log</div>
+      <div style="flex-basis:100%;margin-top:calc(var(--u)*.2)" class="demo-note">NOVA Residences, its units, prices and people are fictional demo data, shown for illustration only.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 02 CHALLENGE -->
+<section class="slide" data-section="Context" data-title="The business challenge">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>02</b> The business challenge</div>
+      <h2 data-r>A developer's work runs on email, paper and <em>spreadsheets</em>.</h2>
+    </div>
+    <div class="body grid challenges">
+      <div class="card" data-r><span class="n">01</span><h3>Approvals without a trail</h3><p>Purchase approvals travel by email and paper. Nobody can see the budget at the moment money is committed.</p><div class="who"><span class="chip plain clay">Finance</span><span class="chip plain clay">Procurement</span></div></div>
+      <div class="card" data-r><span class="n">02</span><h3>Committed spend is invisible</h3><p>Finance can't see what open purchase orders commit next to what has actually been spent.</p><div class="who"><span class="chip plain clay">Finance</span></div></div>
+      <div class="card" data-r><span class="n">03</span><h3>Leads leak</h3><p>Leads from each channel are scored and assigned inconsistently, and follow-ups are missed.</p><div class="who"><span class="chip plain clay">Sales</span></div></div>
+      <div class="card" data-r><span class="n">04</span><h3>Buyers wait</h3><p>Questions about availability, prices and payment plans go unanswered outside office hours.</p><div class="who"><span class="chip plain clay">Customers</span><span class="chip plain clay">Sales</span></div></div>
+      <div class="card" data-r><span class="n">05</span><h3>Content is rewritten</h3><p>The same project copy is written again for every channel and language, with no fact check.</p><div class="who"><span class="chip plain clay">Marketing</span></div></div>
+      <div class="card" data-r><span class="n">06</span><h3>Reports are stale</h3><p>Leadership reports are compiled by hand and are out of date by the time they're read.</p><div class="who"><span class="chip plain clay">Leadership</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 03 VISION -->
+<section class="slide dark" data-section="Context" data-title="The vision">
+  <div class="stage">
+    <div class="head"><div class="eyebrow" data-r><b>03</b> The vision</div></div>
+    <div class="body grid vision">
+      <div>
+        <blockquote data-r>One platform where every approval, lead and campaign follows a rule <em>you can audit</em>, and AI assists but never decides.</blockquote>
+        <div class="principles" data-r>
+          <span>Deterministic business rules</span><span>A person approves</span><span>Everything audited</span><span class="ai">AI grounded in real data</span><span>No new infrastructure</span>
+        </div>
+      </div>
+      <div class="obj" data-r>
+        <span class="id">O1</span><div><b>Shorter approval cycles</b>Requests routed, checked and notified automatically</div>
+        <span class="id">O2</span><div><b>Financial integrity</b>Deterministic budget checks, amount-based routing, segregation of duties, an immutable ledger</div>
+        <span class="id">O3</span><div><b>One view for leadership</b>Dashboards and a BI agent answering from real data through tools</div>
+        <span class="id">O4</span><div><b>More converted leads</b>Capture, rule-based scoring, auto-assignment, follow-up SLAs</div>
+        <span class="id">O5</span><div><b>Faster marketing content</b>EN/AR content that a person reviews and approves</div>
+        <span class="id">O6</span><div><b>Room to grow</b>A modular monolith and an extensible automation engine</div>
+      </div>
+    </div>
+    <p class="tiny muted" data-r style="margin-top:auto">Objectives O1–O6 as written in <code>docs/PROJECT_SPECIFICATION.md</code> § 2.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 04 REQUIREMENTS -->
+<section class="slide" data-section="Context" data-title="Requirements vs. delivered">
+  <div class="stage">
+    <div class="head" style="display:flex;justify-content:space-between;align-items:end;gap:2em">
+      <div>
+        <div class="eyebrow" data-r><b>04</b> Assessment scope vs. what was delivered</div>
+        <h2 data-r style="max-width:none;font-size:calc(var(--u)*2.7)">12 specified modules: <em>8 complete</em>, 3 partial, 1 not built.</h2>
+      </div>
+      <div data-r style="text-align:right">
+        <div class="bar3" style="margin-left:auto"><i style="width:66.7%;background:var(--ok)"></i><i style="width:25%;background:var(--warn)"></i><i style="width:8.3%;background:var(--no)"></i></div>
+        <div class="tiny muted" style="margin-top:.6em">M = must · S = should (priorities from the specification)</div>
+      </div>
+    </div>
+    <div class="body grid req" style="margin-top:calc(var(--u)*1.4)">
+      <div>
+        <div class="r" data-r><span class="id">5.1</span><span class="t">Platform foundation<small>M</small></span><span class="chip ok">Complete</span><span class="e">Sign-in, RBAC from a permission catalogue, append-only audit log, in-app notifications, one error shape, request-ID logs</span></div>
+        <div class="r" data-r><span class="id">5.2</span><span class="t">Executive dashboard<small>M</small></span><span class="chip no">Not built</span><span class="e">Phase 8 wasn't started. Home shows notifications, platform status and activity. KPI charts exist only on Budgets and Automation.</span></div>
+        <div class="r" data-r><span class="id">5.3</span><span class="t">HR &amp; employees<small>M / S</small></span><span class="chip part">Partial</span><span class="e">Departments (with manager) and employees linked to users. Leave requests (S) not built.</span></div>
+        <div class="r" data-r><span class="id">5.4</span><span class="t">Finance &amp; budgets<small>M</small></span><span class="chip part">Partial</span><span class="e">Budgets, append-only ledger, available = allocated − committed − actual, 80 % / 100 % alerts. Expenses not built.</span></div>
+        <div class="r" data-r><span class="id">5.5</span><span class="t">Procurement &amp; suppliers<small>M</small></span><span class="chip ok">Complete</span><span class="e">Suppliers, requests, quotations, purchase orders. Deliberate change D-16: budget is committed at the request's final approval</span></div>
+        <div class="r" data-r><span class="id">5.6</span><span class="t">Approval management<small>M</small></span><span class="chip ok">Complete</span><span class="e">One engine for purchase requests and marketing content: amount-band policies, no self-approval, full history</span></div>
+      </div>
+      <div>
+        <div class="r" data-r><span class="id">5.7</span><span class="t">Python automation engine<small>M</small></span><span class="chip ok">Complete</span><span class="e">Event, schedule and manual triggers, conditions, actions, retries, idempotency and admin screens. 7 workflows.</span></div>
+        <div class="r" data-r><span class="id">5.8</span><span class="t">AI BI agent<small>M</small></span><span class="chip ok">Complete</span><span class="e">Streamed chat over 6 read-only, permission-checked tools. "Data used" is shown with each answer.</span></div>
+        <div class="r" data-r><span class="id">5.9</span><span class="t">Real-estate projects<small>M</small></span><span class="chip ok">Complete</span><span class="e">Projects, buildings, units, payment plans, availability grid and unit status lifecycle</span></div>
+        <div class="r" data-r><span class="id">5.10</span><span class="t">AI property assistant<small>M</small></span><span class="chip ok">Complete</span><span class="e">Public tools return public fields only. Leads are created only with consent. Rate-limited.</span></div>
+        <div class="r" data-r><span class="id">5.11</span><span class="t">CRM &amp; leads<small>M</small></span><span class="chip ok">Complete</span><span class="e">Scoring, round-robin, 48 h SLA with escalation, reservations with expiry (one active per unit, DB-enforced)</span></div>
+        <div class="r" data-r><span class="id">5.12</span><span class="t">AI marketing studio<small>S</small></span><span class="chip part">Partial</span><span class="e">Campaigns, EN/AR content, versioning, human review: complete. AI drafting is switched off (<code>AI_MARKETING_STUDIO_ENABLED=false</code>).</span></div>
+      </div>
+    </div>
+    <p class="tiny muted" data-r style="margin-top:calc(var(--u)*1)">The original assessment brief isn't stored in the repository. This table uses the agreed specification (§ 5) as the baseline. Also outstanding from Phase 9: the demo script and the recorded three-width UI review.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 05 OVERVIEW -->
+<section class="slide" data-section="Platform" data-title="System overview">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>05</b> System overview</div>
+      <h2 data-r>Two applications, <em>one backend</em>, one source of truth.</h2>
+    </div>
+    <div class="body grid ov">
+      <div>
+        <div class="grid domains">
+          <div class="domain" data-r><h3>Operations</h3><p>HR, finance and budgets, procurement, purchase orders, approvals</p></div>
+          <div class="domain" data-r><h3>Real estate &amp; sales</h3><p>Projects, buildings, units, payment plans, CRM, reservations</p></div>
+          <div class="domain" data-r><h3>Marketing</h3><p>Campaigns, EN/AR content review, brochures &amp; posters, public website</p></div>
+          <div class="domain ai" data-r><h3>Intelligence</h3><p>BI agent, property assistant, AI lead summary, through one gateway</p></div>
+          <div class="domain" data-r><h3>Platform</h3><p>Identity &amp; RBAC, audit log, notifications, automation engine</p></div>
+          <div class="domain" data-r><h3>Security throughout</h3><p>Argon2id, HttpOnly session + CSRF, permissions checked in every service, allowlisted public API, append-only audit</p></div>
+        </div>
+        <div class="stats">
+          <div data-r><span class="k" data-count="47">47</span><span>database tables</span></div>
+          <div data-r><span class="k" data-count="15">15</span><span>Alembic migrations, additive</span></div>
+          <div data-r><span class="k" data-count="11">11</span><span>roles</span></div>
+          <div data-r><span class="k" data-count="38">38</span><span>permissions</span></div>
+          <div data-r><span class="k" data-count="7">7</span><span>automated workflows</span></div>
+        </div>
+        <p class="tiny muted" data-r style="margin-top:calc(var(--u)*.9)">Counts read from the development database (Alembic head 0015) on 18 Nov 2026.</p>
+      </div>
+      <div class="stack-shots">
+        <figure class="shot front" data-r="scale"><div class="bar"><i></i><i></i><i></i><span>localhost:5174 · Dashboard (staff, sign-in)</span></div><div class="view" style="--ar:16/10"><img src="assets/shots/d-home.jpg" alt="Dashboard home"></div></figure>
+        <figure class="shot back" data-r="scale" style="--d:8"><div class="bar"><i></i><i></i><i></i><span>localhost:5173/assistant · public property assistant</span></div><div class="view" style="--ar:16/9;--z:1.3;--ox:50%;--oy:20%"><img src="assets/shots/w-assistant.jpg" alt="Public property assistant page"></div></figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 06 BUSINESS OPS -->
+<section class="slide" data-section="Platform" data-title="Business operations">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>06</b> Business operations</div>
+      <h2 data-r>From request to purchase order, with the budget <em>checked at every step</em>.</h2>
+    </div>
+    <div class="body grid mod">
+      <div class="facts">
+        <div class="fact" data-r><span class="ix">a</span><div><b>Purchase request</b>
+          <div class="lifecycle"><span>draft</span><i>→</i><span>sourcing</span><i>→</i><span>pending approval</span><i>→</i><span class="end">approved</span><i>|</i><span>rejected</span></div>
+          <p>Live budget check while typing. Submitting resolves the department or project budget. Over budget is flagged, not blocked.</p></div></div>
+        <div class="fact" data-r><span class="ix">b</span><div><b>Quotations, then amount-based approval</b>
+          <div class="ladder"><div><b>≤ SAR 50k</b>Dept. manager</div><div><b>≤ SAR 250k</b>+ Finance</div><div><b>&gt; SAR 250k</b>+ Executive</div></div>
+          <p>Over budget always adds Finance and Executive. Nobody approves their own request.</p></div></div>
+        <div class="fact" data-r><span class="ix">c</span><div><b>Budget commitment</b><p>The final approval writes one commitment to an <b style="display:inline">append-only ledger</b> (a database trigger blocks UPDATE and DELETE) in the same transaction.</p></div></div>
+        <div class="fact" data-r><span class="ix">d</span><div><b>Purchase order</b>
+          <div class="lifecycle"><span>draft</span><i>→</i><span>issued</span><i>→</i><span>cancelled</span></div>
+          <p>Supplier, lines and prices are copied from the selected quotation. Cancelling either releases the budget once or keeps it for a linked replacement order.</p></div></div>
+      </div>
+      <div class="shots">
+        <figure class="shot" data-r="scale" style="width:86%">
+          <div class="bar"><i></i><i></i><i></i><span>localhost:5174/procurement/requests/PR-00001</span></div>
+          <div class="view" style="--ar:16/9.4"><img src="assets/shots/d-pr-detail.jpg" alt="Purchase request detail with approval timeline"></div>
+        </figure>
+        <div class="lens" id="lens-pr" data-r style="--d:6;left:0;bottom:2%;width:40%;aspect-ratio:1.6" data-src="assets/shots/d-pr-detail.jpg" data-rx="0.7" data-ry="0.655" data-rw="0.275"><span class="tag">Budget impact, committed on approval</span></div>
+        <figure class="shot" data-r="scale" style="position:absolute;right:0;bottom:0;width:52%;--d:4">
+          <div class="bar"><i></i><i></i><i></i><span>localhost:5174/finance/budgets</span></div>
+          <div class="view" style="--ar:16/9;--z:1.25;--ox:75%;--oy:0%"><img src="assets/shots/d-budgets.jpg" alt="Budgets overview"></div>
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 07 REAL ESTATE -->
+<section class="slide" data-section="Platform" data-title="Real estate portfolio">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>07</b> Real-estate portfolio</div>
+      <h2 data-r>Inventory that sales, marketing and the website <em>all read from</em>.</h2>
+    </div>
+    <div class="body grid mod">
+      <div class="facts">
+        <div class="fact" data-r><span class="ix">a</span><div><b>Projects → buildings → units → payment plans</b><p>Unit type, floor, area, bedrooms, price and status. Payment-plan breakdowns are calculated exactly, in Decimal.</p></div></div>
+        <div class="fact" data-r><span class="ix">b</span><div><b>Status you can trust</b>
+          <div class="lifecycle"><span>available</span><i>↔</i><span>blocked</span><i>·</i><span>reserved</span><i>→</i><span class="end">sold</span></div>
+          <p>Staff can block or unblock a unit by hand. A unit becomes reserved, sold or released only through a reservation.</p></div></div>
+        <div class="fact" data-r><span class="ix">c</span><div><b>Availability grid</b><p>Floors × units, coloured by status, for each building.</p></div></div>
+        <div class="fact" data-r><span class="ix">d</span><div><b>Publishing is explicit</b><p>A project reaches the website only when <b style="display:inline">Published</b> is ticked. The website gets an allowlisted subset of fields. Payment plans need a <em>Cleared for marketing</em> classification.</p></div></div>
+        <p class="label-demo" data-r>● NOVA Residences: fictional demo data (<code>is_demo_data</code>), 2 buildings, 20 units, 2 payment plans</p>
+      </div>
+      <div class="shots">
+        <figure class="shot" data-r="scale" style="width:88%">
+          <div class="bar"><i></i><i></i><i></i><span>localhost:5174/realestate/projects/NOVA</span></div>
+          <div class="view" style="--ar:16/9.4"><img src="assets/shots/d-project-nova.jpg" alt="NOVA project in the dashboard"></div>
+        </figure>
+        <div class="lens" id="lens-avail" data-r style="--d:6;left:0;bottom:2%;width:40%;aspect-ratio:1.6" data-src="assets/shots/d-project-nova.jpg" data-rx="0.195" data-ry="0.6" data-rw="0.3"><span class="tag">Availability grid · floors × units</span></div>
+        <figure class="shot" data-r="scale" style="position:absolute;right:0;bottom:0;width:50%;--d:4">
+          <div class="bar"><i></i><i></i><i></i><span>localhost:5174/realestate/units</span></div>
+          <div class="view" style="--ar:16/9;--z:1.25;--ox:75%;--oy:0%"><img src="assets/shots/d-units.jpg" alt="Units list"></div>
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 08 CRM -->
+<section class="slide" data-section="Platform" data-title="CRM and customer journey">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>08</b> CRM &amp; customer journey</div>
+      <h2 data-r>Every enquiry becomes a scored, owned lead, <em>followed up on time</em>.</h2>
+    </div>
+    <div class="body grid mod">
+      <div class="facts">
+        <div class="fact" data-r><span class="ix">a</span><div><b>Pipeline with rules</b>
+          <div class="lifecycle"><span>new</span><i>→</i><span>contacted</span><i>→</i><span>qualified</span><i>→</i><span>viewing</span><i>→</i><span>negotiation</span><i>→</i><span class="end">won</span><i>|</i><span>lost</span></div>
+          <p>Moves go forward only. Won and lost need a reason. Agents see only their own leads.</p></div></div>
+        <div class="fact" data-r><span class="ix">b</span><div><b>Transparent scoring, 0–100</b><p>Points for source, contact completeness, budget, timeline, consent, and the number of available units that fit the budget. Every point is shown with its reason. No AI involved.</p></div></div>
+        <div class="fact" data-r><span class="ix">c</span><div><b>Assignment &amp; SLA</b><p>Round-robin per project and a 48-hour follow-up. <code>crm.follow_up_sla</code> escalates overdue leads to sales managers once a day.</p></div></div>
+        <div class="fact" data-r><span class="ix">d</span><div><b>Reservations</b><p>One active reservation per unit (partial unique index plus a row lock), 72 hours by default. Converting sells the unit and wins the lead in one transaction. Expiry releases the unit.</p></div></div>
+        <div class="demo-note" data-r>Lead names are fictional test data. E-mail addresses and phone numbers are masked in every screenshot.</div>
+      </div>
+      <div class="shots">
+        <figure class="shot" data-r="scale" style="width:88%">
+          <div class="bar"><i></i><i></i><i></i><span>localhost:5174/crm/leads</span></div>
+          <div class="view" style="--ar:16/9.4"><img src="assets/shots/d-leads.jpg" alt="CRM leads"></div>
+        </figure>
+        <div class="lens" id="lens-lead" data-r style="--d:6;left:0;bottom:2%;width:40%;aspect-ratio:1.6" data-src="assets/shots/d-leads.jpg" data-rx="0.195" data-ry="0.45" data-rw="0.33"><span class="tag">Rule-based score · stage · owner</span></div>
+        <figure class="shot" data-r="scale" style="position:absolute;right:0;bottom:0;width:50%;--d:4">
+          <div class="bar"><i></i><i></i><i></i><span>localhost:5174/crm/reservations</span></div>
+          <div class="view" style="--ar:16/9;--z:1.6;--ox:60%;--oy:0%"><img src="assets/shots/d-reservations.jpg" alt="Reservations"></div>
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 09 WORKFLOWS -->
+<section class="slide" data-section="Process" data-title="Four core workflows">
+  <div class="stage" style="padding-top:calc(var(--u)*3.6)">
+    <div class="head" style="display:flex;justify-content:space-between;align-items:end;gap:2em">
+      <div>
+        <div class="eyebrow" data-r><b>09</b> Four core workflows</div>
+        <h2 data-r style="max-width:none;font-size:calc(var(--u)*2.7)">How work <em>actually moves</em>.</h2>
+      </div>
+      <div class="wf-legend" data-r>
+        <span><i></i>step</span><span><i class="k"></i>control point</span><span><i class="a"></i>AI-optional</span><span><i class="e"></i>outcome</span>
+        <span class="presskey">Press <kbd>→</kbd> to build each flow</span>
+      </div>
+    </div>
+    <div class="body lanes" style="margin-top:calc(var(--u)*1.4)">
+      <!-- Sales -->
+      <div class="lane" data-f style="--c:var(--clay)">
+        <div class="ln"><b><span class="sw"></span>Sales</b><span><code>crm.lead_registration</code><br><code>crm.follow_up_sla</code><br><code>crm.reservation_expiry</code></span></div>
+        <div class="flow">
+          <div class="node" style="--n:0"><b>Website</b><span>inquiry form · property assistant</span></div><div class="arrow" style="--n:0"></div>
+          <div class="node" style="--n:1"><b>Lead</b><span><code>lead.created</code>, same transaction</span></div><div class="arrow" style="--n:1"></div>
+          <div class="node key" style="--n:2"><b>Scoring</b><span>rules, 0–100, with reasons</span></div><div class="arrow" style="--n:2"></div>
+          <div class="node" style="--n:3"><b>Assignment</b><span>round-robin per project</span></div><div class="arrow" style="--n:3"></div>
+          <div class="node key" style="--n:4"><b>Follow-up</b><span>48 h SLA → escalation</span></div><div class="arrow" style="--n:4"></div>
+          <div class="node" style="--n:5"><b>Unit</b><span>matched to budget</span></div><div class="arrow" style="--n:5"></div>
+          <div class="node key" style="--n:6"><b>Reservation</b><span>72 h · one per unit</span></div><div class="arrow" style="--n:6"></div>
+          <div class="node end" style="--n:7"><b>Conversion</b><span>unit sold · lead won</span></div>
+          <div class="pulse"></div>
+        </div>
+      </div>
+      <!-- Procurement -->
+      <div class="lane" data-f style="--c:var(--ink-2)">
+        <div class="ln"><b><span class="sw"></span>Procurement</b><span><code>procurement.purchase_&#8203;request_approval</code><br><code>finance.budget_validation</code></span></div>
+        <div class="flow">
+          <div class="node" style="--n:0"><b>Request</b><span>lines, Decimal totals</span></div><div class="arrow" style="--n:0"></div>
+          <div class="node key" style="--n:1"><b>Budget check</b><span>live · over-budget flag</span></div><div class="arrow" style="--n:1"></div>
+          <div class="node" style="--n:2"><b>Quotations</b><span>sourcing · select one</span></div><div class="arrow" style="--n:2"></div>
+          <div class="node key" style="--n:3"><b>Approvals</b><span>routed by amount band</span></div><div class="arrow" style="--n:3"></div>
+          <div class="node" style="--n:4"><b>Final approval</b><span>no self-approval</span></div><div class="arrow" style="--n:4"></div>
+          <div class="node key" style="--n:5"><b>Commitment</b><span>ledger, same transaction</span></div><div class="arrow" style="--n:5"></div>
+          <div class="node end" style="--n:6"><b>PO issued</b><span>copied from quotation</span></div>
+          <div class="branch" style="--n:7;right:0;bottom:calc(var(--u)*-1.25)"><svg viewBox="0 0 20 12"><path d="M18 1 C 18 10, 4 10, 2 4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M0 6 L2 2 L5 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>cancel → release budget, or keep it for a replacement PO</div>
+          <div class="pulse"></div>
+        </div>
+      </div>
+      <!-- Marketing -->
+      <div class="lane" data-f style="--c:#7a5a2e">
+        <div class="ln"><b><span class="sw"></span>Marketing content</b><span><code>marketing.content_review</code><br>shared approval engine</span></div>
+        <div class="flow">
+          <div class="node" style="--n:0"><b>Create</b><span>EN/AR per channel · versioned</span></div><div class="arrow" style="--n:0"></div>
+          <div class="node ai" style="--n:1"><b>AI draft</b><span>built · <b style="display:inline;color:var(--ai)">switched off</b></span></div><div class="arrow" style="--n:1"></div>
+          <div class="node key" style="--n:2"><b>Fact check</b><span>prices, %, bedrooms vs. data</span></div><div class="arrow" style="--n:2"></div>
+          <div class="node" style="--n:3"><b>Submit</b><span>approval opened in the same transaction</span></div><div class="arrow" style="--n:3"></div>
+          <div class="node key" style="--n:4"><b>Manager review</b><span>authors &amp; editors excluded</span></div><div class="arrow" style="--n:4"></div>
+          <div class="node" style="--n:5"><b>Approved</b><span>status only</span></div><div class="arrow" style="--n:5"></div>
+          <div class="node end" style="--n:6"><b>Publish?</b><span>a manual decision, never automatic</span></div>
+          <div class="branch" style="--n:7;left:calc(50% - var(--u)*2);bottom:calc(var(--u)*-1.25)"><svg viewBox="0 0 20 12"><path d="M18 1 C 18 10, 4 10, 2 4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M0 6 L2 2 L5 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>changes requested → revise → resubmit</div>
+          <div class="pulse"></div>
+        </div>
+      </div>
+      <!-- Automation -->
+      <div class="lane" data-f style="--c:#3d6b5a">
+        <div class="ln"><b><span class="sw"></span>Automation</b><span>every workflow above runs on this</span></div>
+        <div class="flow">
+          <div class="node" style="--n:0"><b>Trigger</b><span>event · schedule · manual</span></div><div class="arrow" style="--n:0"></div>
+          <div class="node key" style="--n:1"><b>Conditions</b><span>pure Python · reason recorded</span></div><div class="arrow" style="--n:1"></div>
+          <div class="node" style="--n:2"><b>Action</b><span>registered · typed input · calls services</span></div><div class="arrow" style="--n:2"></div>
+          <div class="node key" style="--n:3"><b>Execution</b><span>claimed · leased · fenced</span></div><div class="arrow" style="--n:3"></div>
+          <div class="node" style="--n:4"><b>Retry / failure</b><span>transient → backoff · permanent → fail</span></div><div class="arrow" style="--n:4"></div>
+          <div class="node end" style="--n:5"><b>History</b><span>steps, logs, retry from UI</span></div>
+          <div class="pulse"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 10 ENGINE -->
+<section class="slide" data-section="Process" data-title="Python automation engine">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>10</b> Custom Python automation engine</div>
+      <h2 data-r>PostgreSQL is the <em>job queue</em>.</h2>
+    </div>
+    <div class="body grid engine">
+      <div>
+        <svg class="eng-svg" viewBox="0 0 760 430" role="img" aria-label="Automation engine data flow">
+          <g data-r style="--d:1">
+            <rect class="bx" x="0" y="10" width="220" height="92" rx="10"/>
+            <text class="t1" x="16" y="38">Business service</text>
+            <text class="t2" x="16" y="58">e.g. submit purchase request</text>
+            <text class="t2" x="16" y="76">change + event row</text>
+            <text class="t2" x="16" y="92">in ONE transaction (outbox)</text>
+          </g>
+          <g data-r style="--d:2">
+            <rect class="bx pg" x="270" y="0" width="230" height="300" rx="12"/>
+            <text class="t1 tw" x="290" y="30">PostgreSQL 18</text>
+            <text class="t2 tw2" x="290" y="64">automation_events</text>
+            <text class="t2 tw2" x="290" y="92">wf_definitions · next_run_at</text>
+            <text class="t2 tw2" x="290" y="120">wf_executions · lease, attempt</text>
+            <text class="t2 tw2" x="290" y="148">wf_step_executions</text>
+            <text class="t2 tw2" x="290" y="176">wf_execution_logs</text>
+            <text class="t2 tw2" x="290" y="204">wf_worker_heartbeats</text>
+            <text class="t2 tw2" x="290" y="246" style="fill:#e0a47e">clock_timestamp() for</text>
+            <text class="t2 tw2" x="290" y="264" style="fill:#e0a47e">every queue comparison</text>
+          </g>
+          <path class="ln" d="M220 56 H270"/><path class="fl" d="M220 56 H270"/>
+          <g data-r style="--d:3">
+            <rect class="bx" x="550" y="10" width="210" height="64" rx="10"/><text class="t1" x="566" y="38">Worker 1</text><text class="t2" x="566" y="58">python -m app.automation.worker</text>
+            <rect class="bx" x="550" y="90" width="210" height="64" rx="10"/><text class="t1" x="566" y="118">Worker 2 … n</text><text class="t2" x="566" y="138">any number, safely</text>
+          </g>
+          <path class="ln" d="M500 42 H550 M500 122 H550"/><path class="fl" d="M500 42 H550 M500 122 H550"/>
+          <g data-r style="--d:4">
+            <rect class="bx" x="550" y="176" width="210" height="124" rx="10" style="stroke:var(--clay)"/>
+            <text class="t1" x="566" y="202">Claim</text>
+            <text class="t2" x="566" y="222">UPDATE … WHERE id IN</text>
+            <text class="t2" x="566" y="238">(SELECT … SKIP LOCKED)</text>
+            <text class="t2" x="566" y="258">→ running, attempt + 1,</text>
+            <text class="t2" x="566" y="274">lease = timeout + 30 s</text>
+          </g>
+          <g data-r style="--d:5">
+            <rect class="bx" x="0" y="330" width="760" height="96" rx="10"/>
+            <text class="t1" x="16" y="358">Each step</text>
+            <text class="t2" x="16" y="380">re-locks its execution (FOR NO KEY UPDATE) → checks owner + attempt → runs the action → checks again → commits.</text>
+            <text class="t2" x="16" y="398">A worker that lost its lease raises LeaseLost and commits nothing. Statement timeout + deadline per attempt.</text>
+            <text class="t2" x="16" y="416">Expired leases are requeued with backoff, or failed after the last attempt.</text>
+          </g>
+          <path class="ln" d="M655 300 V330"/><path class="fl" d="M655 300 V330"/>
+        </svg>
+        <div class="eng-list">
+          <div class="card"><b>Business service</b><span>The change and its event row are written in one transaction (outbox).</span></div>
+          <div class="card" style="background:var(--ink);color:#f1ece4"><b>PostgreSQL 18</b><span style="color:#b9b2a8">automation_events · wf_definitions · wf_executions · step executions · logs · worker heartbeats</span></div>
+          <div class="card" style="border-color:var(--clay)"><b>Workers 1…n claim</b><span>UPDATE … WHERE id IN (SELECT … FOR UPDATE SKIP LOCKED) → running, attempt + 1, lease = timeout + 30 s</span></div>
+          <div class="card"><b>Each step</b><span>Re-locks its execution, checks owner + attempt, runs the action, checks again, commits. A worker that lost its lease commits nothing.</span></div>
+        </div>
+      </div>
+      <div class="guar">
+        <div class="g" data-r><b>At-least-once delivery</b><p>Execution is idempotent per event, with slot keys for schedules. The same event processed twice creates one execution.</p></div>
+        <div class="g" data-r><b>Retry policy</b><p>Transient errors retry with exponential backoff (30 s, 60 s, 120 s…, capped at 15 min, ±20 % jitter). Default 3 attempts. Permanent errors fail at once.</p></div>
+        <div class="g" data-r><b>Deterministic</b><p>Conditions are plain Python. No approval or financial write depends on AI output.</p></div>
+        <div class="g" data-r><b>Operable</b><p>Enable or disable workflows, edit parameters, view steps and logs, retry a failed run (audited).</p></div>
+        <div data-r>
+          <p class="tiny muted" style="margin-bottom:.5em">7 workflows registered · 589 executions in the development database on 18 Nov 2026, all succeeded (scheduled runs add more every 15 min)</p>
+          <div class="wfl"><code>procurement.purchase_request_approval</code><code>procurement.supplier_analysis</code><code>finance.budget_validation</code><code>crm.lead_registration</code><code>crm.follow_up_sla</code><code>crm.reservation_expiry</code><code>marketing.content_review</code></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 11 AI ARCHITECTURE -->
+<section class="slide" data-section="Intelligence" data-title="AI architecture">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>11</b> AI architecture</div>
+      <h2 data-r>Every Claude call passes through <em>one gateway</em>.</h2>
+    </div>
+    <div class="body aiarch">
+      <div class="aicol">
+        <h3 data-r>Capabilities</h3>
+        <div class="cap" data-r><div><b>bi_agent</b><span class="m">effort high</span></div><span class="chip ai">Built</span></div>
+        <div class="cap" data-r><div><b>property_assistant</b><span class="m">effort medium</span></div><span class="chip ai">Built</span></div>
+        <div class="cap" data-r><div><b>lead_summary</b><span class="m">effort medium</span></div><span class="chip ai">Built</span></div>
+        <div class="cap" data-r><div><b>marketing_studio</b><span class="m">own feature flag</span></div><span class="chip off">Off</span></div>
+        <div class="cap" data-r><div><b>system_check</b><span class="m">smoke / health check</span></div><span class="chip ai">Built</span></div>
+      </div>
+      <div class="conn" data-r="fade" style="--d:7"></div>
+      <div class="gateway" data-r style="--d:7">
+        <h3>AI Gateway · <span class="mono" style="font-size:.7em">app/ai/gateway.py</span></h3>
+        <div class="gl">
+          <div><b>Kill switch</b><code>AI_ENABLED</code>. AI being off or broken never stops the rest of the app.</div>
+          <div><b>Capability profiles</b>Model and effort per capability, set in <code>.env</code> only. A test fails on <code>claude-*</code> literals outside <code>ai/config.py</code>.</div>
+          <div><b>Daily cost cap</b><code>AI_DAILY_COST_CAP_USD</code> (default 10). Calls are refused once it is reached.</div>
+          <div><b>Usage &amp; cost</b>One <code>ai_usage</code> row per call: capability, model, tokens, estimated cost.</div>
+          <div><b>Resilience</b>Timeouts, bounded retries on transient errors only, refusal fallback, structured-output validation.</div>
+          <div><b>Tool registry</b>Strict Pydantic inputs, internal/public audience, a permission check per call, max 8 tool calls, an <code>ai_tool_calls</code> audit row.</div>
+        </div>
+        <p class="tiny muted">Status endpoint <code>GET /ai/status</code>: disabled · misconfigured · unverified · operational · degraded</p>
+      </div>
+      <div class="conn" data-r="fade" style="--d:9"></div>
+      <div class="claude" data-r style="--d:9">
+        <h3>Claude API</h3>
+        <p>Only <code>app/ai/provider.py</code> imports the official <code>anthropic</code> SDK (2.9.0).</p>
+        <p>Code default model: <code>claude-opus-5-5</code>. This environment overrides it to <code>claude-haiku-5-5</code> through <code>.env</code>.</p>
+        <p>The key lives only in the backend environment. It is never logged, returned or stored.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 12 AI USE CASES -->
+<section class="slide" data-section="Intelligence" data-title="AI use cases">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>12</b> AI use cases, with their real status</div>
+      <h2 data-r>AI where it helps people. <em>Rules</em> where money and decisions are involved.</h2>
+    </div>
+    <div class="body grid uc">
+      <div class="card aiedge" data-r><div class="st"><span class="chip ok">Built &amp; tested</span><span class="chip ai">Live calls logged</span></div><h3>BI agent</h3>
+        <p>Executives ask questions in plain language. Claude answers only through 6 read-only tools (budgets, approvals backlog, POs, lead funnel, inventory, workflow failures), each checked against the user's own permissions.</p>
+        <div class="ev"><code>ai_usage</code>: 2 succeeded, 1 rejected · prompt-injection test: no state change</div></div>
+      <div class="card aiedge" data-r><div class="st"><span class="chip ok">Built &amp; tested</span><span class="chip ai">Live calls logged</span></div><h3>Property assistant</h3>
+        <p>A public chat searches available units and explains payment plans, using public fields only. A lead is created only with a ticked consent box and details the visitor typed.</p>
+        <div class="ev"><code>ai_usage</code>: 2 succeeded, 1 rejected · rate limits per IP, per visitor and per conversation</div></div>
+      <div class="card aiedge" data-r><div class="st"><span class="chip ok">Built &amp; tested</span><span class="chip part">Not verified live</span></div><h3>AI lead summary</h3>
+        <p>An on-demand, advisory summary of a lead: buying signals, concerns, next action. The model never sees names, phone numbers or e-mails, and the summary changes no CRM data.</p>
+        <div class="ev">Tested with a scripted fake client · <code>ai_usage</code>: 0 succeeded, 1 rejected</div></div>
+      <div class="card aiedge" data-r><div class="st"><span class="chip off">Switched off</span></div><h3>Marketing copy drafting</h3>
+        <p>The capability is behind <code>AI_MARKETING_STUDIO_ENABLED=false</code>. The endpoint refuses without calling the provider. People write the copy today, and it is checked against project facts.</p>
+        <div class="ev">Separate from <code>AI_ENABLED</code> · no live result claimed</div></div>
+      <div class="card det" data-r><div class="st"><span class="chip plain" style="background:#e9e6f0;color:var(--ink)">Deliberately not AI</span></div><h3>Decisions that stay deterministic</h3>
+        <p>Lead scoring, approval routing, budget checks, reservation rules and the number checks on brochures and posters are plain, tested Python. Their results can be explained line by line.</p>
+        <div class="ev">FR-10: AI output never approves, posts or changes a financial record</div></div>
+    </div>
+    <p class="tiny muted" data-r style="margin-top:calc(var(--u)*.9)">"Live calls logged" comes from counts in the development <code>ai_usage</code> table. No AI call was made to prepare this presentation. <code>GET /api/v1/health</code> reports AI as "operational" (last request succeeded).</p>
+  </div>
+</section>
+
+<!-- ============================================================ 13 STACK -->
+<section class="slide" data-section="Engineering" data-title="Technology stack">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>13</b> Technology stack</div>
+      <h2 data-r>Mainstream, current, and <em>verified in the code</em>.</h2>
+    </div>
+    <div class="body grid stack">
+      <div class="layer" data-r>
+        <h3>Frontend · both apps</h3>
+        <div class="tech"><b>React</b><span>19.3.1</span></div>
+        <div class="tech"><b>TypeScript</b><span>6.0.3</span></div>
+        <div class="tech"><b>Vite</b><span>8.3.8</span></div>
+        <div class="tech"><b>Tailwind CSS</b><span>4.3.5</span></div>
+        <div class="tech"><b>TanStack Query</b><span>5.107.1</span></div>
+        <div class="tech"><b>React Router</b><span>7.18.5</span></div>
+        <div class="tech"><b>Inter · Fraunces · IBM Plex Sans Arabic</b><span>fontsource</span></div>
+      </div>
+      <div class="layer" data-r>
+        <h3>Dashboard · Website</h3>
+        <div class="sub-h">Dashboard</div>
+        <div class="tech"><b>Radix primitives <em>shadcn/ui pattern</em></b><span>1.x–2.x</span></div>
+        <div class="tech"><b>TanStack Table</b><span>8.21.3</span></div>
+        <div class="tech"><b>React Hook Form + Zod</b><span>7.92 · 4.6</span></div>
+        <div class="tech"><b>Recharts</b><span>3.10.1</span></div>
+        <div class="sub-h">Website</div>
+        <div class="tech"><b>three.js</b><span>0.181.2</span></div>
+        <div class="tech"><b>React Three Fiber · drei</b><span>9.8.2 · 10.7.9</span></div>
+        <div class="tech"><b>Google Maps JS API <em>loaded at runtime, Demo Key</em></b><span>weekly</span></div>
+      </div>
+      <div class="layer" data-r>
+        <h3>Backend · data</h3>
+        <div class="tech"><b>Python <em>requires ≥ 3.12</em></b><span>3.14.5</span></div>
+        <div class="tech"><b>FastAPI · Uvicorn</b><span>0.163.1 · 0.54</span></div>
+        <div class="tech"><b>SQLAlchemy</b><span>2.1.8</span></div>
+        <div class="tech"><b>Alembic</b><span>1.20.1</span></div>
+        <div class="tech"><b>psycopg</b><span>3.3.9</span></div>
+        <div class="tech"><b>Pydantic</b><span>2.14.3</span></div>
+        <div class="tech"><b>PyJWT · argon2-cffi</b><span>2.15.1 · 25.1</span></div>
+        <div class="tech"><b>Jinja2 · Playwright <em>offline PDF/PNG rendering</em></b><span>3.1.6 · 1.65.2</span></div>
+        <div class="tech"><b>PostgreSQL</b><span>18.6</span></div>
+      </div>
+      <div class="layer ai" data-r>
+        <h3>AI · quality</h3>
+        <div class="tech"><b>Anthropic Python SDK</b><span>2.9.0</span></div>
+        <div class="tech"><b>Claude <em>model per capability, from .env</em></b><span>opus-5-5 default</span></div>
+        <div class="sub-h">Quality</div>
+        <div class="tech"><b>pytest · httpx</b><span>9.2.0 · 0.28.1</span></div>
+        <div class="tech"><b>Ruff</b><span>0.17.5</span></div>
+        <div class="tech"><b>Vitest · Testing Library</b><span>5.1.0 · 16.3</span></div>
+        <div class="tech"><b>ESLint · typescript-eslint</b><span>10.x · 8.72</span></div>
+        <div class="sub-h">3D asset</div>
+        <div class="tech"><b>Blender <em>in-house villa model</em></b><span>5.3.0</span></div>
+      </div>
+    </div>
+    <p class="tiny muted" data-r style="margin-top:calc(var(--u)*.8)">Versions are what is installed (<code>node_modules</code>, <code>pip list</code>, <code>SELECT version()</code>).</p>
+  </div>
+</section>
+
+<!-- ============================================================ 14 ARCHITECTURE -->
+<section class="slide" data-section="Engineering" data-title="Architecture">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>14</b> Architecture &amp; data flow</div>
+      <h2 data-r>A layered modular monolith with a <em>hard public boundary</em>.</h2>
+      <p class="lede" data-r style="font-size:calc(var(--u)*1.05);max-width:none">Every staff request passes the same gates: session cookie + CSRF header → validated input → permission check in the service → audited change.</p>
+    </div>
+    <div class="body" style="margin-top:calc(var(--u)*1.2)">
+      <svg class="arch" viewBox="0 0 1600 640" preserveAspectRatio="xMidYMid meet" role="img" aria-label="System architecture with data flows">
+        <!-- zones -->
+        <text class="zone" x="0" y="12">Browsers</text>
+        <text class="zone" x="360" y="12">FastAPI · :8000 · one process, many modules</text>
+        <text class="zone" x="1250" y="12">Data &amp; external</text>
+        <!-- clients -->
+        <g data-r style="--d:1">
+          <rect class="b" x="0" y="40" width="290" height="120" rx="12"/>
+          <text class="h" x="20" y="74">Marketing website</text><text class="s" x="20" y="96">apps/marketing · :5173 · public</text>
+          <text class="s" x="20" y="118">EN / AR (RTL) · light / dark · 3D viewer</text><text class="s" x="20" y="140">proxy forwards only /api/v1/public</text>
+          <rect class="b" x="0" y="300" width="290" height="120" rx="12"/>
+          <text class="h" x="20" y="334">Staff dashboard</text><text class="s" x="20" y="356">apps/dashboard · :5174 · sign-in</text>
+          <text class="s" x="20" y="378">HttpOnly session cookie (JWT, 8 h)</text><text class="s" x="20" y="400">CSRF header on every change</text>
+        </g>
+        <!-- API -->
+        <g data-r style="--d:2">
+          <rect class="b soft" x="360" y="30" width="820" height="600" rx="16"/>
+          <rect class="b" x="390" y="56" width="360" height="94" rx="10" style="stroke:var(--clay)"/>
+          <text class="h" x="410" y="88">Public API</text><text class="s" x="410" y="110">allowlisted schemas · honeypot + signed form token</text><text class="s" x="410" y="130">rate limits · advisory-lock de-duplication</text>
+          <rect class="b" x="390" y="306" width="360" height="94" rx="10"/>
+          <text class="h" x="410" y="338">Internal API (routers)</text><text class="s" x="410" y="360">session + CSRF · Pydantic extra="forbid"</text><text class="s" x="410" y="380">one error shape · request IDs</text>
+          <rect class="b" x="790" y="56" width="360" height="344" rx="10"/>
+          <text class="h" x="810" y="88">Service layer</text>
+          <text class="s" x="810" y="112">business rules · permission checks</text>
+          <text class="s" x="810" y="134">identity · hr · finance · procurement</text>
+          <text class="s" x="810" y="156">approvals · realestate · crm · marketing</text>
+          <text class="s" x="810" y="178">audit · notifications · collateral</text>
+          <rect class="b" x="810" y="200" width="320" height="56" rx="8" style="fill:var(--paper)"/>
+          <text class="s" x="826" y="224" style="fill:var(--text);font-weight:600">EventBus → automation_events</text><text class="s" x="826" y="242">transactional outbox, same commit</text>
+          <rect class="b" x="810" y="270" width="320" height="56" rx="8" style="fill:var(--paper)"/>
+          <text class="s" x="826" y="294" style="fill:var(--text);font-weight:600">Repositories · SQLAlchemy 2</text><text class="s" x="826" y="312">row locks · Decimal NUMERIC(18,2)</text>
+          <text class="s" x="810" y="356">collateral: Jinja2 → headless Chromium,</text><text class="s" x="810" y="376">offline, number check before export</text>
+          <rect class="b ai" x="390" y="440" width="760" height="164" rx="12"/>
+          <text class="h ai-t" x="410" y="474">AI layer · app/ai</text>
+          <text class="s" x="410" y="500">chat loop (max 8 tool calls) → tool registry (internal | public audience, permission per call)</text>
+          <text class="s" x="410" y="522">→ gateway: kill switch · capability profile · cost cap · timeouts · usage row</text>
+          <text class="s" x="410" y="544">→ provider.py: the only importer of the anthropic SDK</text>
+          <text class="s" x="410" y="574">Tools call the same services as the API, under the caller's permissions. Never SQL, never credentials.</text>
+        </g>
+        <!-- data -->
+        <g data-r style="--d:3">
+          <rect class="b ink" x="1250" y="40" width="350" height="250" rx="14"/>
+          <text class="h w" x="1272" y="76">PostgreSQL 18</text>
+          <text class="s w2" x="1272" y="102">47 tables · 15 migrations</text>
+          <text class="s w2" x="1272" y="126">append-only triggers: audit_logs,</text>
+          <text class="s w2" x="1272" y="146">budget_ledger_entries, approval_decisions</text>
+          <text class="s w2" x="1272" y="170">partial unique indexes: one active</text>
+          <text class="s w2" x="1272" y="190">reservation per unit, one active PO per PR</text>
+          <text class="s w2" x="1272" y="214">CHECKs: demo projects can't be verified</text>
+          <text class="s w2" x="1272" y="244">also the job queue ↓</text>
+          <rect class="b" x="1250" y="320" width="350" height="96" rx="12"/>
+          <text class="h" x="1272" y="354">Automation worker(s)</text><text class="s" x="1272" y="376">separate process · SKIP LOCKED claims</text><text class="s" x="1272" y="396">leases · fencing · heartbeats</text>
+          <rect class="b ext" x="1250" y="460" width="350" height="70" rx="12"/>
+          <text class="h ai-t" x="1272" y="490">Claude API</text><text class="s" x="1272" y="512">Anthropic · HTTPS from backend only</text>
+          <rect class="b ext" x="1250" y="560" width="350" height="70" rx="12"/>
+          <text class="h" x="1272" y="590">Google Maps JS API</text><text class="s" x="1272" y="612">browser key, website only (Demo Key)</text>
+        </g>
+        <!-- links (static) -->
+        <path class="ln" d="M290 100 H390"/><path class="ln" d="M290 360 H390"/>
+        <path class="ln" d="M750 103 H790"/><path class="ln" d="M750 353 H790"/>
+        <path class="ln" d="M1150 160 H1250"/><path class="ln" d="M1425 290 V320"/>
+        <path class="ln" d="M1150 495 H1250"/>
+        <path class="ln" d="M145 40 V32 Q145 26 151 26 H1214 Q1222 26 1222 34 V585 H1250" style="stroke-dasharray:3 5"/>
+        <!-- animated flows -->
+        <g data-r="fade" style="--d:5">
+          <path class="fl" d="M290 100 H390"/><path class="fl" d="M750 103 H790"/>
+          <path class="fl" d="M290 360 H390"/><path class="fl" d="M750 353 H790"/>
+          <path class="fl" d="M1150 160 H1250"/><path class="fl" d="M1425 290 V320"/>
+          <path class="fl ai" d="M1150 495 H1250"/>
+          <path class="fl ext" d="M145 40 V32 Q145 26 151 26 H1214 Q1222 26 1222 34 V585 H1250"/>
+        </g>
+      </svg>
+      <div class="arch-list">
+        <div class="card"><b>Marketing website (:5173, public)</b><span class="small muted">→ Public API only: allowlisted schemas, form token, rate limits</span></div>
+        <div class="card"><b>Staff dashboard (:5174)</b><span class="small muted">→ Internal API: session cookie + CSRF header</span></div>
+        <div class="card"><b>Service layer</b><span class="small muted">business rules + permission checks; EventBus writes automation_events in the same commit</span></div>
+        <div class="card" style="border-color:var(--ai)"><b style="color:var(--ai)">AI layer</b><span class="small muted">tool registry → gateway → provider.py → Claude API</span></div>
+        <div class="card" style="background:var(--ink);color:#f1ece4"><b>PostgreSQL 18</b><span class="small" style="color:#b9b2a8">47 tables, append-only triggers, partial unique indexes, also the job queue</span></div>
+        <div class="card"><b>Automation workers</b><span class="small muted">separate processes, SKIP LOCKED claims, leases</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 15 SECURITY -->
+<section class="slide" data-section="Engineering" data-title="Security">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>15</b> Security, governance &amp; reliability</div>
+      <h2 data-r style="max-width:none">Seven layers of security, <em>from the browser to the database row</em>.</h2>
+    </div>
+    <div class="body sec">
+      <div class="strata">
+        <div class="stratum" style="--i:0" data-r="left"><b><span class="ln">1</span>Public edge</b><p>The public API returns allowlisted fields only · honeypot plus a signed form token with a minimum fill time · rate limits per IP and per contact · CORS limited to the two app origins</p></div>
+        <div class="stratum" style="--i:1" data-r="left"><b><span class="ln">2</span>Identity &amp; sessions</b><p>Argon2id password hashing · signed session in an HttpOnly, SameSite=Lax cookie (Secure required outside development) · CSRF header required on every change · lockout after 5 failures for 15 min · sign-out revokes every session</p></div>
+        <div class="stratum" style="--i:2" data-r="left"><b><span class="ln">3</span>Authorisation</b><p>Every internal endpoint needs a signed-in user, enforced by the backend whatever the frontend shows · 38 permissions checked inside the services · sales agents see only their own leads</p></div>
+        <div class="stratum" style="--i:3" data-r="left"><b><span class="ln">4</span>Approvals &amp; audit</b><p>Nobody approves their own request · authors and editors are excluded from approving their content · append-only audit log and approval decisions (database triggers)</p></div>
+        <div class="stratum ai" style="--i:4" data-r="left"><b><span class="ln">5</span>AI isolation</b><p>Read-only tools, run under the user's own permissions · AI never approves, posts or writes financial data · kill switch and daily cost cap · contact details redacted before the model</p></div>
+        <div class="stratum" style="--i:5" data-r="left"><b><span class="ln">6</span>Files, secrets &amp; errors</b><p>Uploads typed by file signature, capped (10 MB images, 50 MB 3D models) and stored under random names · secrets only in the git-ignored <code>.env</code>, never sent to the frontend, redacted from logs; placeholder secrets refused outside development · unexpected errors return a generic message with a request ID</p></div>
+        <div class="stratum core" style="--i:6" data-r="left"><b><span class="ln">7</span>Financial integrity</b><p>Money as Decimal NUMERIC(18,2) · append-only budget ledger · row locks · idempotency keys · partial unique indexes (one active reservation per unit, one active PO per request)</p></div>
+      </div>
+      <div class="gov">
+        <h3 data-r>Checked by automated tests</h3>
+        <ul class="proof">
+          <li data-r>Every non-public route rejects anonymous calls. The test walks the whole route table.</li>
+          <li data-r>Public responses expose only allowlisted fields, even when a staff cookie is sent.</li>
+          <li data-r>Self-approval is refused, and excluded approvers can't decide.</li>
+          <li data-r>The ledger and audit rows can't be updated or deleted.</li>
+          <li data-r>Concurrent commits, reservations and orders can't double-book.</li>
+          <li data-r>A prompt-injection attempt causes no state change.</li>
+          <li data-r>Uploads with the wrong signature, too large, or with external references are refused.</li>
+          <li data-r>Missing CSRF header → refused. Lockout and session revocation work.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 16 EXTRAS -->
+<section class="slide" data-section="Beyond scope" data-title="Added beyond the assessment">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>16</b> Added beyond the assessment</div>
+      <h2 data-r>Features the brief didn't ask for, <em>and why they matter</em>.</h2>
+    </div>
+    <div class="body ex">
+      <div class="card" data-r><h3>Public marketing website</h3><dl><dt>What</dt><dd>A second React app: projects, units, payment plans, viewing requests, the property assistant</dd><dt>Why</dt><dd>The spec planned the assistant page only</dd><dt>Value</dt><dd>A real lead channel that feeds the CRM workflow directly</dd></dl></div>
+      <div class="card" data-r><h3>Arabic / RTL, light &amp; dark, motion</h3><dl><dt>What</dt><dd>Redesigned website with full Arabic RTL (IBM Plex Sans Arabic), two themes and restrained motion</dd><dt>Why</dt><dd>The spec ruled out full RTL and a dark theme</dd><dt>Value</dt><dd>Reaches Arabic-first buyers in the Saudi market</dd></dl></div>
+      <div class="card" data-r><h3>Dashboard dark mode</h3><dl><dt>What</dt><dd>Semantic tokens switched as a set, with the choice remembered</dd><dt>Why</dt><dd>Listed as out of scope in the spec</dd><dt>Value</dt><dd>Comfort for long operations sessions. Proves the token system works.</dd></dl></div>
+      <div class="card" data-r><h3>Brochure &amp; poster generator</h3><dl><dt>What</dt><dd>A4 PDF and posters in 4 social sizes × 3 layouts, EN/AR, rendered offline</dd><dt>Why</dt><dd>Content alone doesn't make marketing collateral</dd><dt>Value</dt><dd>Any number that isn't a database fact stops the export</dd></dl></div>
+      <div class="card" data-r><h3>Device image uploads</h3><dl><dt>What</dt><dd>Project images (approval, source and licence required) and brochure-only images</dd><dt>Why</dt><dd>Media used to be links only</dd><dt>Value</dt><dd>Image rights managed. Brochure-only images never reach the website.</dd></dl></div>
+      <div class="card" data-r><h3>3D models &amp; illustrative maps</h3><dl><dt>What</dt><dd>Server-validated glTF upload → approve/archive lifecycle. A three.js viewer. Google map with an illustrative reference point.</dd><dt>Why</dt><dd>Buyers want to picture the place</dd><dt>Value</dt><dd>Immersive, but never misleading</dd></dl>
+        <p class="note">The villa is an in-house Blender model labelled "illustrative concept model". The map point is Kingdom Centre, labelled "not the actual property location". Street View needs billing and is off.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 17 DASHBOARD GALLERY -->
+<section class="slide" data-section="Beyond scope" data-title="Inside the staff dashboard">
+  <div class="stage">
+    <div class="head" style="display:flex;justify-content:space-between;align-items:end;gap:2em">
+      <div>
+        <div class="eyebrow" data-r><b>17</b> Inside the staff dashboard, captured live</div>
+        <h2 data-r style="max-width:none">Workflows a manager <em>can see and act on</em>.</h2>
+      </div>
+      <p class="tiny muted" data-r style="max-width:44ch;text-align:right">Real screens with real development data, signed in as the Super Admin demo user. Where a feature holds no data, its real empty state is shown.</p>
+    </div>
+    <div class="body gal2" style="margin-top:calc(var(--u)*1.4)">
+      <figure data-r="scale"><div class="shot"><div class="bar"><i></i><i></i><i></i><span>localhost:5174/approvals</span></div><div class="view" style="--z:1.22;--ox:100%;--oy:0%"><img src="assets/shots/d-approvals.jpg" alt="Approvals inbox: PR-00003 waits at the department-manager step"></div></div><figcaption>Approvals inbox: PR-00003 waits at the department-manager step</figcaption></figure>
+      <figure data-r="scale"><div class="shot"><div class="bar"><i></i><i></i><i></i><span>localhost:5174/automation/executions</span></div><div class="view" style="--z:1.22;--ox:100%;--oy:0%"><img src="assets/shots/d-executions.jpg" alt="Execution history: every run with trigger, attempts and duration"></div></div><figcaption>Execution history: every run with trigger, attempts and duration</figcaption></figure>
+      <figure data-r="scale"><div class="shot"><div class="bar"><i></i><i></i><i></i><span>localhost:5174/automation</span></div><div class="view" style="--z:1.22;--ox:100%;--oy:0%"><img src="assets/shots/d-automation.jpg" alt="Workflows: enable or disable, parameters, worker status"></div></div><figcaption>Workflows: enable or disable, parameters, worker status</figcaption></figure>
+      <figure data-r="scale"><div class="shot"><div class="bar"><i></i><i></i><i></i><span>localhost:5174/marketing/content/MCT-00001</span></div><div class="view" style="--z:1.22;--ox:100%;--oy:0%"><img src="assets/shots/d-content-editor.jpg" alt="Marketing Studio: approved content, version 3. AI drafting is shown as off."></div></div><figcaption>Marketing Studio: approved content, version 3. AI drafting is shown as off.</figcaption></figure>
+      <figure data-r="scale"><div class="shot"><div class="bar"><i></i><i></i><i></i><span>localhost:5174/marketing/collateral</span></div><div class="view" style="--z:1.24;--ox:92%;--oy:30%"><img src="assets/shots/d-collateral.jpg" alt="Brochures &amp; posters: verified facts, sections with missing data left out"></div></div><figcaption>Brochures &amp; posters: verified facts, sections with missing data left out</figcaption></figure>
+      <figure data-r="scale"><div class="shot"><div class="bar"><i></i><i></i><i></i><span>localhost:5174/intelligence/bi-agent</span></div><div class="view" style="--z:1.22;--ox:100%;--oy:0%"><img src="assets/shots/d-bi-agent.jpg" alt="BI agent: empty state. Conversations are private to their owner."></div></div><figcaption>BI agent: empty state. Conversations are private to their owner.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 17 GALLERY -->
+<section class="slide" data-section="Beyond scope" data-title="The public experience">
+  <div class="stage">
+    <div class="head" style="display:flex;justify-content:space-between;align-items:end;gap:2em">
+      <div>
+        <div class="eyebrow" data-r><b>18</b> The public experience, captured live</div>
+        <h2 data-r style="max-width:none">Illustrative, <em>and labelled as such</em>.</h2>
+      </div>
+      <p class="tiny muted" data-r style="max-width:44ch;text-align:right">Captured on 18 Nov 2026 from the running apps at 1440 × 900. NOVA is fictional, and every illustrative element says so on screen.</p>
+    </div>
+    <div class="body gal" style="margin-top:calc(var(--u)*1.4)">
+      <figure class="g1" data-r="scale" style="position:relative"><div class="shot"><div class="bar"><i></i><i></i><i></i><span>localhost:5173/projects/NOVA · 3D viewer</span></div><div class="view"><img src="assets/shots/w-nova-3d-notice.jpg" alt="NOVA page with the 3D villa viewer" style="object-position:50% 45%"></div></div><div class="lens" style="left:4%;bottom:16%;width:88%;aspect-ratio:7" data-src="assets/shots/w-nova-3d-notice.jpg" data-rx="0.12" data-ry="0.80" data-rw="0.5"><span class="tag">On-screen notice, EN and AR</span></div><figcaption>Interactive three.js viewer: an original Blender villa, labelled as an illustrative concept model</figcaption></figure>
+      <figure data-r="scale"><div class="shot"><div class="bar"><i></i><i></i><i></i><span>/projects/NOVA?lang=ar · location</span></div><div class="view"><img src="assets/shots/w-nova-ar-map.jpg" alt="Arabic illustrative map point" style="object-position:50% 12%"></div></div><figcaption>Arabic, right-to-left: an illustrative point (Kingdom Centre), labelled "not the actual property location". Google Maps Demo Key.</figcaption></figure>
+      <figure data-r="scale"><div class="shot"><div class="bar"><i></i><i></i><i></i><span>/?lang=ar · right-to-left</span></div><div class="view"><img src="assets/shots/w-home-ar.jpg" alt="Arabic RTL home page" style="object-position:50% 15%"></div></div><figcaption>Arabic home in IBM Plex Sans Arabic. The in-house render is labelled illustrative.</figcaption></figure>
+      <figure data-r="scale"><div class="shot darkframe"><div class="bar"><i></i><i></i><i></i><span>Website · dark theme</span></div><div class="view"><img src="assets/shots/w-home-dark.jpg" alt="Website dark theme"></div></div><figcaption>Website dark theme</figcaption></figure>
+      <figure data-r="scale"><div class="shot darkframe"><div class="bar"><i></i><i></i><i></i><span>Dashboard · dark mode</span></div><div class="view"><img src="assets/shots/d-home-dark.jpg" alt="Dashboard dark mode"></div></div><figcaption>Staff dashboard in dark mode</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 18 TESTING -->
+<section class="slide" data-section="Quality" data-title="Testing">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>19</b> Testing, run for this presentation</div>
+      <h2 data-r>Every automated test <em>passes</em>, against a real PostgreSQL.</h2>
+    </div>
+    <div class="body tests">
+      <div>
+        <div data-r><span class="k big tnum" data-count="469">469</span></div>
+        <p data-r class="lede" style="font-size:calc(var(--u)*1.1)">automated tests passed, 0 failed. Run on 18 Nov 2026 against the current working tree (Phases 6 and 7, uncommitted).</p>
+        <div class="checks" data-r>
+          <div>Ruff: all checks passed</div><div>ESLint: dashboard &amp; website</div>
+          <div><code>tsc -b</code>: dashboard &amp; website</div><div class="x">Production builds not re-run</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:calc(var(--u)*1.8)">
+        <div class="tb">
+          <div class="t" data-r><div><b>Backend · PostgreSQL integration</b><span>22 of 27 test modules run against PostgreSQL</span></div><div class="track"><i style="width:54.6%;background:var(--ink);--d:0"></i></div><div class="num" data-count="256">256</div></div>
+          <div class="t" data-r><div><b>Backend · unit</b><span>rules, engine, AI config, core</span></div><div class="track"><i style="width:20.5%;background:var(--ink-3);--d:1"></i></div><div class="num" data-count="96">96</div></div>
+          <div class="t" data-r><div><b>Dashboard · Vitest</b><span>17 files · Testing Library</span></div><div class="track"><i style="width:15.6%;background:var(--clay);--d:2"></i></div><div class="num" data-count="73">73</div></div>
+          <div class="t" data-r><div><b>Website · Vitest</b><span>4 files · Google Maps mocked</span></div><div class="track"><i style="width:9.4%;background:var(--terra);--d:3"></i></div><div class="num" data-count="44">44</div></div>
+        </div>
+        <div class="cover" data-r>
+          <div>Concurrency with real threads: budget commits, reservations, round-robin, POs, worker claims</div>
+          <div>Auth boundary across the whole route table, public field allowlists</div>
+          <div>Append-only ledger and audit log, idempotency keys</div>
+          <div>Engine: retry classification, schedule slots, leases, step resume</div>
+          <div>AI: scripted fake client, permission refusals, prompt injection, cost cap. No real API calls.</div>
+          <div><code>claude-*</code> literals allowed only in <code>ai/config.py</code></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 19 LIMITATIONS -->
+<section class="slide" data-section="Outlook" data-title="Limitations and opportunities">
+  <div class="stage">
+    <div class="head">
+      <div class="eyebrow" data-r><b>20</b> Limitations &amp; future opportunities</div>
+      <h2 data-r>What a panel should know <em>before trusting the demo</em>.</h2>
+    </div>
+    <div class="body lim">
+      <ul>
+        <li data-r><b>Not built</b><span>Executive KPI dashboard · expenses · leave requests · Phase 9 demo script and recorded UI review</span></li>
+        <li data-r><b>Switched off</b><span>AI marketing drafting (<code>AI_MARKETING_STUDIO_ENABLED=false</code>). The lead summary hasn't been verified against the live API.</span></li>
+        <li data-r><b>Maps</b><span>Maps Demo Key: the map works, but Street View needs a billed key. No nearby-places data. NOVA has no real location.</span></li>
+        <li data-r><b>Demo content</b><span>NOVA and its 20 units are fictional, and the 3D villa is illustrative. Data to clean up: NOVA's website cover is a third-party image link with no recorded licence, and a brochure-only test image is labelled "chgpt".</span></li>
+        <li data-r><b>Public site</b><span>About and contact details are placeholders. There are no Privacy or Terms pages.</span></li>
+        <li data-r><b>Production</b><span>Not deployed. No SSO or MFA. No real e-mail, SMS or WhatsApp. The assistant's rate limits are in-process (single instance). SAR only.</span></li>
+      </ul>
+      <div class="opp">
+        <div class="o" data-r><span class="ix">1</span><div><b>Executive one-view</b><p>A KPI service over the existing module services, with every chart traced to an API field</p></div></div>
+        <div class="o" data-r><span class="ix">2</span><div><b>AI-assisted copy, still reviewed</b><p>Turn on marketing drafting. The fact check and manager approval already exist.</p></div></div>
+        <div class="o" data-r><span class="ix">3</span><div><b>Onboard a real project</b><p>Verified location, licensed imagery and an approved 3D model, all through workflows that already exist</p></div></div>
+        <div class="o" data-r><span class="ix">4</span><div><b>Workflow definitions in data</b><p>The engine's contracts were designed so workflows can move into the database without rewriting triggers, conditions or actions</p></div></div>
+        <div class="o" data-r><span class="ix">5</span><div><b>Production hardening</b><p>Hosting, SSO and MFA, outbound channels, shared rate limiting, backups of the database and the model files together</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 20 CLOSING -->
+<section class="slide dark s-close" data-section="Close" data-title="Closing">
+  <div class="glow"></div><div class="horizon"></div>
+  <div class="stage">
+    <div class="eyebrow" data-r><b>21</b> In summary</div>
+    <h1 data-r style="margin-top:calc(var(--u)*1.2)">Transformation is <em>process first</em>, AI second.</h1>
+    <div class="takeaways">
+      <div data-r><b>Rules you can audit</b><span>Budgets, approvals, scoring and reservations are deterministic, tested and logged.</span></div>
+      <div data-r><b>Automation you can operate</b><span>A Python engine on PostgreSQL that is idempotent, retries and shows every step.</span></div>
+      <div data-r><b>AI with guard-rails</b><span>One gateway, read-only tools, cost cap and kill switch, with a person deciding.</span></div>
+      <div data-r><b>Honest about scope</b><span>8 of 12 modules complete, 3 partial, 1 not built. 469 tests pass.</span></div>
+    </div>
+    <div class="thanks" data-r><em>Thank you. Questions welcome.</em><span>SmartEstate AI · prototype · all demo data fictional</span></div>
+  </div>
+</section>
+
+</main>
+
+<div class="chrome-bot">
+  <div class="count" id="count"><b>01</b> / 21</div>
+  <div class="ticks" id="ticks" role="tablist" aria-label="Slides"></div>
+  <div class="ctrl">
+    <button id="prevBtn" aria-label="Previous slide" title="Previous (←)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg></button>
+    <button id="nextBtn" aria-label="Next slide" title="Next (→ / Space)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg></button>
+    <button id="fsBtn" aria-label="Toggle full screen" title="Full screen (F)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
+    <button id="helpBtn" aria-label="Keyboard shortcuts" title="Shortcuts (?)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.2"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.5 1.7c-.5.2-.8.6-.8 1.1v.4M8 11.6v.1"/></svg></button>
+  </div>
+</div>
+<div class="progress"><i id="bar"></i></div>
+<div class="hint" id="hint">→ builds the next flow</div>
+<div class="help" id="help" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+  <div>
+    <h3>Controls</h3>
+    <dl>
+      <dt><kbd>→</kbd> <kbd>Space</kbd> <kbd>PgDn</kbd></dt><dd>Next step or slide</dd>
+      <dt><kbd>←</kbd> <kbd>Shift+Space</kbd> <kbd>PgUp</kbd></dt><dd>Previous</dd>
+      <dt><kbd>Home</kbd> <kbd>End</kbd></dt><dd>First / last slide</dd>
+      <dt><kbd>F</kbd></dt><dd>Full screen</dd>
+      <dt><kbd>1</kbd>–<kbd>9</kbd> then <kbd>Enter</kbd></dt><dd>Jump to slide number</dd>
+      <dt><span>Swipe</span></dt><dd>Next / previous on touch screens</dd>
+      <dt><kbd>?</kbd> <kbd>Esc</kbd></dt><dd>Show / close this panel</dd>
+    </dl>
+  </div>
+</div>
+
+<script>
+(() => {
+  const slides = [...document.querySelectorAll(".slide")];
+  const N = slides.length;
+  const $ = (id) => document.getElementById(id);
+  const ticks = $("ticks");
+  let cur = -1, frag = 0, typed = "";
+
+  // stagger indexes for reveals (explicit --d wins)
+  slides.forEach((s) => {
+    let k = 0;
+    s.querySelectorAll("[data-r]").forEach((el) => { if (!el.style.getPropertyValue("--d")) el.style.setProperty("--d", k); k++; });
+  });
+  slides.forEach((s, i) => {
+    const b = document.createElement("button");
+    b.setAttribute("aria-label", `Slide ${i + 1}: ${s.dataset.title}`);
+    b.title = `${i + 1}. ${s.dataset.title}`;
+    b.addEventListener("click", () => show(i, "none"));
+    ticks.appendChild(b);
+  });
+
+  const frags = (i) => [...slides[i].querySelectorAll("[data-f]")];
+
+  function countUp(s) {
+    s.querySelectorAll("[data-count]").forEach((el) => {
+      const to = +el.dataset.count; const t0 = performance.now(); const dur = 1100;
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) { el.textContent = to; return; }
+      const step = (t) => { const p = Math.min(1, (t - t0) / dur); el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); };
+      el.textContent = "0"; setTimeout(() => requestAnimationFrame(step), 350);
+    });
+  }
+
+  function show(i, fragState = "none") {
+    i = Math.max(0, Math.min(N - 1, i));
+    const dir = i >= cur ? "from-right" : "from-left";
+    slides.forEach((s, k) => {
+      s.classList.remove("from-left", "from-right");
+      if (k === i) return;
+      s.classList.remove("active");
+    });
+    const s = slides[i];
+    if (i !== cur) { s.classList.add(dir); void s.offsetWidth; s.classList.add("active"); s.scrollTop = 0; countUp(s); }
+    const fr = frags(i);
+    fr.forEach((f) => f.classList.toggle("on", fragState === "all"));
+    frag = fragState === "all" ? fr.length : 0;
+    cur = i;
+    document.body.classList.toggle("on-dark", s.classList.contains("dark"));
+    $("count").innerHTML = `<b>${String(i + 1).padStart(2, "0")}</b> / ${N}`;
+    $("bar").style.width = `${((i + 1) / N) * 100}%`;
+    $("sectionLabel").textContent = s.dataset.section || "";
+    [...ticks.children].forEach((b, k) => { b.classList.toggle("cur", k === i); b.setAttribute("aria-current", k === i ? "step" : "false"); });
+    document.title = `${i + 1}. ${s.dataset.title} · SmartEstate AI`;
+    if (location.hash !== `#${i + 1}`) history.replaceState(null, "", `#${i + 1}`);
+    $("hint").classList.toggle("show", fr.length > 0 && frag < fr.length);
+    requestAnimationFrame(layoutLenses);
+  }
+
+  function next() {
+    const fr = frags(cur);
+    if (frag < fr.length) { fr[frag].classList.add("on"); frag++; $("hint").classList.toggle("show", frag < fr.length); return; }
+    if (cur < N - 1) show(cur + 1, "none");
+  }
+  function prev() {
+    const fr = frags(cur);
+    if (frag > 0) { frag--; fr[frag].classList.remove("on"); $("hint").classList.add("show"); return; }
+    if (cur > 0) show(cur - 1, "all");
+  }
+
+  function fullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+    else document.exitFullscreen?.();
+  }
+  const help = $("help");
+  const toggleHelp = (open) => help.classList.toggle("open", open ?? !help.classList.contains("open"));
+
+  document.addEventListener("keydown", (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const k = e.key;
+    if (help.classList.contains("open") && (k === "Escape" || k === "?")) { toggleHelp(false); e.preventDefault(); return; }
+    if (k === "ArrowRight" || k === "PageDown" || (k === " " && !e.shiftKey) || (k === "Enter" && !typed)) { e.preventDefault(); next(); }
+    else if (k === "ArrowLeft" || k === "PageUp" || (k === " " && e.shiftKey) || k === "Backspace") { e.preventDefault(); prev(); }
+    else if (k === "ArrowDown" || k === "ArrowUp") {
+      const s = slides[cur];
+      if (s.scrollHeight > s.clientHeight + 4) return; // let narrow layouts scroll
+      e.preventDefault(); k === "ArrowDown" ? next() : prev();
+    }
+    else if (k === "Home") { e.preventDefault(); show(0); }
+    else if (k === "End") { e.preventDefault(); show(N - 1); }
+    else if (k === "f" || k === "F") { fullscreen(); }
+    else if (k === "?") { toggleHelp(true); }
+    else if (/^[0-9]$/.test(k)) { typed += k; clearTimeout(window.__t); window.__t = setTimeout(() => (typed = ""), 1500); }
+    else if (k === "Enter" && typed) { show(+typed - 1); typed = ""; }
+  });
+  $("prevBtn").onclick = prev; $("nextBtn").onclick = next; $("fsBtn").onclick = fullscreen; $("helpBtn").onclick = () => toggleHelp();
+  help.addEventListener("click", (e) => { if (e.target === help) toggleHelp(false); });
+
+  // touch swipe (horizontal only, so vertical scrolling still works)
+  let tx = 0, ty = 0;
+  document.addEventListener("touchstart", (e) => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4) (dx < 0 ? next : prev)();
+  }, { passive: true });
+
+  // zoomed callouts: data-src + region (fractions of the image) → background crop
+  const LENSES = window.LENSES || {};
+  function layoutLenses() {
+    document.querySelectorAll(".lens[data-src]").forEach((el) => {
+      const { src, rx, ry, rw } = el.dataset;
+      const W = el.clientWidth, H = el.clientHeight; if (!W) return;
+      const iw = W / +rw, ih = iw * (+el.dataset.ar || 0.625);
+      el.style.backgroundImage = `url("${src}")`;
+      el.style.backgroundSize = `${iw}px ${ih}px`;
+      el.style.backgroundPosition = `${-(+rx) * iw}px ${-(+ry) * ih}px`;
+    });
+  }
+  addEventListener("resize", layoutLenses);
+  window.__deck = { show, next, prev, get cur() { return cur; }, N };
+
+  const start = parseInt(location.hash.slice(1), 10);
+  const printing = new URLSearchParams(location.search).has("print");
+  if (printing) { document.documentElement.classList.add("printing"); slides.forEach((s) => { s.classList.add("active"); s.querySelectorAll("[data-f]").forEach((f) => f.classList.add("on")); }); layoutLenses(); }
+  else show(Number.isFinite(start) ? start - 1 : 0);
+  addEventListener("load", layoutLenses);
+})();
+</script>
+</body>
+</html>

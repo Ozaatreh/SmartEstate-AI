@@ -35,7 +35,7 @@ def approved_request(as_, org, *, prices=("1000.00", "250.50"), qtys=("10", "4")
 
 def ledger(db, org) -> list[tuple[str, Decimal]]:
     rows = db.scalars(
-        select(BudgetLedgerEntry).where(BudgetLedgerEntry.budget_id == org.budgets["equip"].id).order_by(BudgetLedgerEntry.created_at)
+        select(BudgetLedgerEntry).where(BudgetLedgerEntry.budget_id == org.budgets["equip"].id).order_by(BudgetLedgerEntry.created_at, BudgetLedgerEntry.entry_type)  # tie-break: commitment before release
     )
     return [(e.entry_type, e.amount) for e in rows]
 
@@ -216,7 +216,7 @@ def test_audit_and_events(as_, org, db):
     po = create(as_, pr).json()
     as_("buyer").post(f"/procurement/purchase-orders/{po['id']}/issue")
     as_("buyer").post(f"/procurement/purchase-orders/{po['id']}/cancel", {"reason": "Supplier withdrew", "release_budget": True})
-    po_actions = [a for (a,) in db.execute(select(AuditLog.action).where(AuditLog.entity_id == po["id"]).order_by(AuditLog.created_at))]
+    po_actions = [a for (a,) in db.execute(select(AuditLog.action).where(AuditLog.entity_id == po["id"]).order_by(AuditLog.seq))]
     assert po_actions == ["purchase_order.created", "purchase_order.issued", "purchase_order.cancelled"]
     pr_actions = {a for (a,) in db.execute(select(AuditLog.action).where(AuditLog.entity_id == pr["id"]))}
     assert {

@@ -1,5 +1,6 @@
 """Imports every model module so Alembic autogenerate and tests see the full metadata."""
 
+from app.ai.models import AIConversation, AIMessage, AIToolCall, AIUsage  # noqa: F401
 from app.automation.models import (  # noqa: F401
     AutomationEvent,
     WorkerHeartbeat,
@@ -20,6 +21,7 @@ from app.modules.crm.models import Lead, LeadActivity, SalesAssignmentState, Uni
 from app.modules.finance.models import Budget, BudgetCategory, BudgetLedgerEntry, OperationalProject  # noqa: F401
 from app.modules.hr.models import Department, Employee  # noqa: F401
 from app.modules.identity.models import Permission, Role, RolePermission, User, UserRole  # noqa: F401
+from app.modules.marketing.models import MarketingCampaign, MarketingContent, MarketingContentVersion  # noqa: F401
 from app.modules.notifications.models import Notification  # noqa: F401
 from app.modules.procurement.models import (  # noqa: F401
     PurchaseOrder,
@@ -30,4 +32,5 @@ from app.modules.procurement.models import (  # noqa: F401
     Supplier,
     SupplierQuotation,
 )
+from app.modules.realestate.model3d.models import RePropertyModel  # noqa: F401
 from app.modules.realestate.models import ReBuilding, RePaymentPlan, ReProject, ReUnit  # noqa: F401

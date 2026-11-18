@@ -160,6 +160,27 @@ class CRMService:
     # ================================================================== create / read
     def create_lead(self, principal: Principal, data: LeadCreate) -> Lead:
         ensure_permission(principal, Perm.CRM_LEADS_CREATE)
+        return self._create_lead(data, actor_user_id=principal.user_id)
+
+    def create_lead_from_assistant(self, data: LeadCreate) -> Lead:
+        """Phase 6C: a visitor of the public property assistant left contact details *with consent*. There is no
+        signed-in user (``created_by`` stays empty); consent and source are enforced here, not trusted from the caller."""
+        if not data.consent:
+            raise BusinessRuleViolation("A lead can only be created with the visitor's consent.", code="consent_required")
+        if data.source != "property_assistant":
+            raise BusinessRuleViolation("Assistant leads must use the property_assistant source.", code="invalid_source")
+        return self._create_lead(data, actor_user_id=None)
+
+    def create_lead_from_website(self, data: LeadCreate) -> Lead:
+        """Phase 7A: a public website inquiry (contact / viewing request) with the visitor's consent. Does **not**
+        commit: the inquiry service commits it together with its timeline entry, under the dedupe lock."""
+        if not data.consent:
+            raise BusinessRuleViolation("A lead can only be created with the visitor's consent.", code="consent_required")
+        if data.source != "website":
+            raise BusinessRuleViolation("Website leads must use the website source.", code="invalid_source")
+        return self._create_lead(data, actor_user_id=None, commit=False)
+
+    def _create_lead(self, data: LeadCreate, *, actor_user_id: uuid.UUID | None, commit: bool = True) -> Lead:
         from app.common.codes import next_code
 
         project_id = self._validate_links(data.project_id, data.interested_unit_id)
@@ -176,7 +197,7 @@ class CRMService:
             budget_max=data.budget_max,
             bedrooms_wanted=data.bedrooms_wanted,
             notes=data.notes,
-            created_by=principal.user_id,
+            created_by=actor_user_id,
             consent_given_at=now if data.consent else None,
             project_id=project_id,
             interested_unit_id=data.interested_unit_id,
@@ -187,7 +208,7 @@ class CRMService:
         self.session.flush()
         self.audit.record(
             "crm.lead_created",
-            actor_user_id=principal.user_id,
+            actor_user_id=actor_user_id,
             entity_type="lead",
             entity_id=lead.id,
             summary=f"{lead.code} registered ({lead.source})",
@@ -197,10 +218,11 @@ class CRMService:
             "lead.created",
             entity_type="lead",
             entity_id=lead.id,
-            actor_user_id=principal.user_id,
+            actor_user_id=actor_user_id,
             payload={"code": lead.code, "source": lead.source, "project_id": str(project_id) if project_id else None},
         )
-        self.session.commit()
+        if commit:
+            self.session.commit()
         return lead
 
     def _scope_stmt(self, principal: Principal, scope: str):
@@ -272,7 +294,7 @@ class CRMService:
         )
         actions: list[str] = []
         if workable:
-            actions += ["edit", "change_stage", "add_activity"]
+            actions += ["edit", "change_stage", "add_activity", "ai_summary"]
             if lead.stage in OPEN_STAGES and principal.has(Perm.CRM_RESERVATIONS_MANAGE):
                 actions.append("reserve")
         if principal.has(Perm.CRM_LEADS_MANAGE):

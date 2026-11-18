@@ -1,0 +1,119 @@
+/*
+ * SmartEstate AI — design tokens ("Najd" identity, UI_UX_DESIGN.md § 2).
+ * Components use only these semantic tokens (via Tailwind), never raw colour values.
+ * Dark mode = the `.dark` block below (applied on <html>), same names, a separate palette (not an inversion) matching
+ * the public website's "Dark Architectural" theme.
+ */
+:root {
+  color-scheme: light;
+  /* Surfaces */
+  --canvas: #f7f6f3;
+  --surface: #ffffff;
+  --surface-subtle: #fbfaf8;
+  --surface-sunken: #f2f0ec;
+  --border: #e5e2dc;
+  --border-subtle: #eeece7;
+  --border-strong: #d6d2ca;
+
+  /* Text */
+  --text: #0f1a2b;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+  --text-inverse: #ffffff;
+  --surface-inverse: #14213d; /* always-dark panels (sign-in brand panel) */
+
+  /* Brand & actions */
+  --primary: #14213d; /* night ink */
+  --primary-hover: #1d2d52;
+  --primary-foreground: #ffffff;
+  --brand: #a4532b; /* desert clay */
+  --brand-hover: #8f4724;
+  --brand-subtle: #f6ece6;
+  --on-accent: #ffffff; /* text on solid brand / success / danger fills */
+  --ai: #5b4bc4;
+  --ai-subtle: #efedfa;
+
+  /* Status */
+  --success: #15803d;
+  --success-subtle: #e8f5ec;
+  --warning: #b45309;
+  --warning-subtle: #fdf3e7;
+  --danger: #b91c1c;
+  --danger-subtle: #fcebeb;
+  --info: #1d4ed8;
+  --info-subtle: #eaf0fd;
+  --neutral: #475569;
+  --neutral-subtle: #f1f2f4;
+
+  /* Charts (fixed order) */
+  --chart-1: #1f3a5f;
+  --chart-2: #c0703f;
+  --chart-3: #3f8f7f;
+  --chart-4: #8c7ad9;
+  --chart-5: #9aa5b1;
+
+  /* Shape & elevation */
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --radius-dialog: 10px;
+  --shadow-overlay: 0 8px 24px -6px rgb(15 26 43 / 0.14), 0 2px 6px -2px rgb(15 26 43 / 0.08);
+  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--brand);
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 250ms;
+
+  /* Layout */
+  --sidebar-width: 248px;
+  --sidebar-rail: 64px;
+  --topbar-height: 56px;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --canvas: #191b1e;
+  --surface: #292c30;
+  --surface-subtle: #222529;
+  --surface-sunken: #1e2023;
+  --border: #363a3f;
+  --border-subtle: #2d3034;
+  --border-strong: #4a4f55;
+
+  --text: #f4f0ea;
+  --text-secondary: #b6b2ad;
+  --text-muted: #9c9791;
+  --text-inverse: #191b1e;
+  --surface-inverse: #101113;
+
+  --primary: #f4f0ea;
+  --primary-hover: #ffffff;
+  --primary-foreground: #191b1e;
+  --brand: #c17a4b;
+  --brand-hover: #d08a5b;
+  --brand-subtle: #3a2b21;
+  --on-accent: #191b1e;
+  --ai: #a99cf0;
+  --ai-subtle: #2d2945;
+
+  --success: #6cc68f;
+  --success-subtle: #1e3327;
+  --warning: #e3a55c;
+  --warning-subtle: #3a2c1b;
+  --danger: #f08a80;
+  --danger-subtle: #3d2220;
+  --info: #8fb2f0;
+  --info-subtle: #1f2a3d;
+  --neutral: #b6b2ad;
+  --neutral-subtle: #2f3236;
+
+  --chart-1: #8fb2f0;
+  --chart-2: #d08a5b;
+  --chart-3: #6cc6b0;
+  --chart-4: #b3a5f2;
+  --chart-5: #8e969f;
+
+  --shadow-overlay: 0 8px 24px -6px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+}

@@ -1,0 +1,15 @@
+# Optional free keep-alive (Cloudflare Workers Free plan, cron triggers). Pings the API health endpoint every
+# 10 minutes during a daytime window only, so Render's free instance (and the automation worker inside it) stays awake
+# while evaluators are likely to visit, without exhausting Neon's free 100 CU-hours/month:
+#   12 h/day × 30 days × 0.25 CU ≈ 90 CU-hours.
+# Window: 05:00–16:59 UTC = 08:00–19:59 Riyadh. Deploy:  npx wrangler deploy  (from this folder, signed in to Cloudflare)
+name = "smartestate-keepalive"
+main = "index.js"
+compatibility_date = "2026-11-01"
+workers_dev = false
+
+[triggers]
+crons = ["*/10 5-16 * * *"]
+
+[vars]
+HEALTH_URL = "https://smartestate-api.onrender.com/api/v1/health"

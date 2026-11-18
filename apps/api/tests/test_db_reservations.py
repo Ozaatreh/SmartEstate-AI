@@ -94,13 +94,13 @@ def test_cancel_releases_unit_once(sales, db, inventory):
     assert a1.post(f"/crm/reservations/{res['id']}/convert").json()["error"]["code"] == "reservation_not_active"
     # The unit can be reserved again.
     assert reserve(a1, lead, unit).status_code == 201
-    ev = [
-        e.payload["to"]
-        for e in db.scalars(
-            select(AutomationEvent).where(AutomationEvent.event_type == "unit.status_changed").order_by(AutomationEvent.created_at)
-        )
-    ]
-    assert ev == ["reserved", "available", "reserved"]
+    # All events share one created_at here (the test runs in a single transaction), so compare transitions, not order:
+    # available → reserved twice and reserved → available once is exactly reserve, cancel, reserve.
+    ev = sorted(
+        (e.payload["from"], e.payload["to"])
+        for e in db.scalars(select(AutomationEvent).where(AutomationEvent.event_type == "unit.status_changed"))
+    )
+    assert ev == [("available", "reserved"), ("available", "reserved"), ("reserved", "available")]
 
 
 def test_convert_sells_unit_and_wins_lead(sales, db, inventory):

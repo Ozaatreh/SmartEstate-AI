@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import sys
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.automation.manager import sync_definitions
@@ -38,6 +39,7 @@ DEMO_USERS: tuple[tuple[str, str, str, str], ...] = (
     ("sales_manager", "Sara Al-Harbi", "Sales Manager", "sales.manager"),
     ("sales_agent", "Yousef Nasser", "Sales Consultant", "sales.agent"),
     ("marketing_manager", "Huda Al-Zahrani", "Marketing Manager", "marketing"),
+    ("marketing_specialist", "Lina Farouk", "Marketing Specialist", "marketing.specialist"),
     ("employee", "Ahmed Karim", "Site Engineer", "employee"),
 )
 
@@ -118,11 +120,16 @@ def run(settings: Settings | None = None) -> None:
         policies, categories = seed_reference(session)
         workflows = sync_definitions(session)
         created = 0
-        if settings.is_dev_like:
+        demo = settings.seeds_demo_data
+        if demo and not settings.is_dev_like and session.scalar(select(User).where(User.email == settings.seed_admin_email)):
+            # Hosted demo: seed once, on first boot. Restarts never re-create records evaluators changed or removed.
+            demo = False
+            print("Hosted demo data already seeded; skipping.", file=sys.stderr)
+        if demo:
             created = seed_demo_users(session, settings, roles)
         session.commit()
-        business = settings.is_dev_like and seed_demo_business(session, settings.seed_admin_email.split("@", 1)[1])
-        inventory = seed_demo_realestate(session) if settings.is_dev_like else None
+        business = demo and seed_demo_business(session, settings.seed_admin_email.split("@", 1)[1])
+        inventory = seed_demo_realestate(session) if demo else None
         session.commit()
     print(
         f"Seed complete: {len(perms)} permissions, {len(roles)} roles, {policies} approval policies, {categories} budget categories, "
@@ -131,8 +138,8 @@ def run(settings: Settings | None = None) -> None:
         + ("; fictional demo organisation created." if business else ".")
         + (f" Fictional NOVA inventory: {inventory['units']} units added." if inventory else "")
     )
-    if not settings.is_dev_like:
-        print("Demo accounts are skipped outside development/test.", file=sys.stderr)
+    if not settings.seeds_demo_data:
+        print("Demo accounts are skipped outside development/test (set SEED_DEMO_DATA=true for a staging demo).", file=sys.stderr)
 
 
 if __name__ == "__main__":

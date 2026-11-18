@@ -62,6 +62,12 @@ def test_definitions_registered_with_schedules(db, wf):
     assert "crm.new_lead" in defs["crm.lead_registration"].description
 
 
+def later_same_day(now: datetime) -> datetime:
+    """A later 15-minute slot on the same UTC day (near midnight +15 min would be a new day, which escalates again)."""
+    later = now + timedelta(minutes=15)
+    return later if later.date() == now.date() else now + timedelta(seconds=1)
+
+
 def test_follow_up_sla_escalates_once_per_lead_per_day(sales, db, wf):
     late = new_lead(sales, db, owner="agent1")
     on_time = new_lead(sales, db, owner="agent1")
@@ -83,10 +89,12 @@ def test_follow_up_sla_escalates_once_per_lead_per_day(sales, db, wf):
     assert db.scalar(select(AuditLog).where(AuditLog.action == "crm.lead_escalated", AuditLog.entity_id == late["id"]))
 
     # Replaying the same slot is single-fire (no second execution); a later slot the same day escalates nothing new.
-    assert len(fire(wf, db, "crm.follow_up_sla")) == 1
+    # (If the wall clock crossed a 15-minute boundary in between, the replay is legitimately a new slot.)
+    replay = fire(wf, db, "crm.follow_up_sla")
+    assert len({e.idempotency_key for e in replay}) == len(replay) <= 2  # at most one execution per slot
     from app.modules.crm.service import CRMService
 
-    assert CRMService(db).escalate_overdue(now=datetime.now(UTC) + timedelta(minutes=15)) == []
+    assert CRMService(db).escalate_overdue(now=later_same_day(datetime.now(UTC))) == []
     db.commit()
     count = db.scalar(select(func.count()).select_from(Notification).where(Notification.type == "crm.follow_up_overdue"))
     assert count == 2  # one manager + the owner
@@ -109,7 +117,7 @@ def test_follow_up_sla_dedupe_is_per_day(sales, db):
     svc = CRMService(db)
     today = datetime.now(UTC)
     assert len(svc.escalate_overdue(now=today)) == 1
-    assert svc.escalate_overdue(now=today + timedelta(minutes=15)) == []
+    assert svc.escalate_overdue(now=later_same_day(today)) == []
     assert len(svc.escalate_overdue(now=today + timedelta(days=1))) == 1  # escalates again the next day
     db.commit()
 
@@ -163,7 +171,10 @@ def test_reservation_expiry_workflow_releases_units(sales, db, wf, inventory):
     # Schedule single-fire: replaying the same slot creates no duplicate execution.
     db.execute(update(WorkflowDefinition).where(WorkflowDefinition.key == "crm.reservation_expiry").values(next_run_at=None))
     db.commit()
-    assert wf.fire_schedules() == 0
+    wf.fire_schedules()
+    db.expire_all()
+    runs = list(db.scalars(select(WorkflowExecution).where(WorkflowExecution.workflow_key == "crm.reservation_expiry")))
+    assert len({e.idempotency_key for e in runs}) == len(runs) <= 2  # same slot → no duplicate (a new slot may follow)
 
 
 def test_reservation_expiry_retry_is_idempotent(sales, db, wf, inventory, monkeypatch):

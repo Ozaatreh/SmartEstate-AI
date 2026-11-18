@@ -22,7 +22,7 @@ class Inventory:
 
 @pytest.fixture
 def inventory(db: Session) -> Inventory:
-    project = ReProject(code="TST", name="Test Residences", city="Riyadh", status="launched", amenities=["Pool"], is_demo_data=True)
+    project = ReProject(code="TST", name="Test Residences", city="Riyadh", status="launched", amenities=["Pool"], is_demo_data=True, is_published=True)
     db.add(project)
     db.flush()
     inv = Inventory(project=project)
@@ -60,6 +60,7 @@ def inventory(db: Session) -> Inventory:
             installments=36,
             installment_frequency="monthly",
             handover_pct=Decimal("0"),
+            marketing_status="cleared",
         ),
         RePaymentPlan(
             project_id=project.id,
@@ -68,6 +69,7 @@ def inventory(db: Session) -> Inventory:
             installments=8,
             installment_frequency="quarterly",
             handover_pct=Decimal("30"),
+            marketing_status="cleared",
         ),
     ]
     db.add_all(inv.plans)

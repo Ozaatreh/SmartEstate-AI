@@ -9,6 +9,10 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.ai.features.bi_agent import router as bi_agent_router
+from app.ai.features.property_assistant import router as property_assistant_router
+from app.ai.gateway import AIGateway
+from app.ai.router import router as ai_router
 from app.ai.status import log_ai_status, resolve_ai_status
 from app.automation.router import router as automation_router
 from app.core.config import Settings, get_settings
@@ -23,9 +27,14 @@ from app.modules.health.router import router as health_router
 from app.modules.hr.router import router as hr_router
 from app.modules.identity.router import router as auth_router
 from app.modules.identity.throttle import IpThrottle
+from app.modules.marketing.collateral.router import router as collateral_router
+from app.modules.marketing.router import router as marketing_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.procurement.router import router as procurement_router  # also registers the purchase-request approval subject
+from app.modules.realestate.media_router import router as media_router
+from app.modules.realestate.model3d.router import router as model3d_router
 from app.modules.realestate.router import router as realestate_router
+from app.public.router import router as public_router
 
 log = logging.getLogger(__name__)
 API_PREFIX = "/api/v1"
@@ -52,6 +61,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     # Startup resilience: computed eagerly, never raises.
     app.state.ai_status = resolve_ai_status(settings)
+    app.state.ai_gateway = AIGateway(settings)  # no network call; the provider client is created on first use
     app.state.ip_throttle = IpThrottle(settings.login_ip_max_failures, settings.login_ip_window_minutes * 60)
 
     register_exception_handlers(app)
@@ -75,7 +85,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         hr_router,
         finance_router,
         procurement_router,
-        approvals_router, crm_router, automation_router, realestate_router,
+        approvals_router,
+        crm_router,
+        automation_router,
+        realestate_router,
+        ai_router,
+        bi_agent_router,
+        property_assistant_router,
+        public_router,
+        marketing_router,
+        collateral_router,
+        model3d_router,
+        media_router,
     ):
         api.include_router(r)
     app.include_router(api)

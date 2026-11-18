@@ -49,6 +49,15 @@ class Perm(StrEnum):
     # Real estate inventory (Phase 5)
     REALESTATE_INVENTORY_READ = "realestate.inventory.read"
     REALESTATE_INVENTORY_MANAGE = "realestate.inventory.manage"
+    # AI gateway (Phase 6A): no role holds it by default — Super Admin only
+    MARKETING_CAMPAIGNS_READ = "marketing.campaigns.read"
+    MARKETING_CAMPAIGNS_MANAGE = "marketing.campaigns.manage"
+    MARKETING_CONTENT_CREATE = "marketing.content.create"
+    MARKETING_CONTENT_APPROVE = "marketing.content.approve"
+    MARKETING_COLLATERAL_GENERATE = "marketing.collateral.generate"
+
+    AI_GATEWAY_MANAGE = "ai.gateway.manage"
+    AI_BI_AGENT_USE = "ai.bi_agent.use"
     # Automation
     AUTOMATION_WORKFLOWS_READ = "automation.workflows.read"
     AUTOMATION_WORKFLOWS_MANAGE = "automation.workflows.manage"
@@ -84,6 +93,13 @@ PERMISSION_DESCRIPTIONS: dict[Perm, str] = {
     Perm.CRM_RESERVATIONS_MANAGE: "Reserve units for leads; cancel and convert reservations (own leads unless crm.leads.manage)",
     Perm.REALESTATE_INVENTORY_READ: "View real estate projects, buildings, units and payment plans",
     Perm.REALESTATE_INVENTORY_MANAGE: "Create and edit real estate projects, buildings, units and payment plans",
+    Perm.MARKETING_CAMPAIGNS_READ: "View marketing campaigns, content and approval history",
+    Perm.MARKETING_CAMPAIGNS_MANAGE: "Create, edit and archive marketing campaigns",
+    Perm.MARKETING_CONTENT_CREATE: "Write, edit and submit marketing content for review",
+    Perm.MARKETING_CONTENT_APPROVE: "Approve or reject submitted marketing content (never one's own)",
+    Perm.MARKETING_COLLATERAL_GENERATE: "Generate brochures and social posters from verified project data",
+    Perm.AI_GATEWAY_MANAGE: "View AI gateway configuration, availability and usage, and run the AI health check",
+    Perm.AI_BI_AGENT_USE: "Chat with the AI business intelligence agent (its tools still check each module permission)",
     Perm.AUTOMATION_WORKFLOWS_READ: "View workflows, executions and logs",
     Perm.AUTOMATION_WORKFLOWS_MANAGE: "Enable, disable and configure workflows",
     Perm.AUTOMATION_EXECUTIONS_OPERATE: "Retry, cancel and run workflow executions",
@@ -121,6 +137,8 @@ DEFAULT_ROLES: tuple[RoleSpec, ...] = (
                 P.APPROVALS_READ_ALL,
                 P.CRM_LEADS_READ_ALL,
                 P.AUTOMATION_WORKFLOWS_READ,
+                P.AI_BI_AGENT_USE,
+                P.MARKETING_CAMPAIGNS_READ,
             }
         ),
     ),
@@ -205,7 +223,29 @@ DEFAULT_ROLES: tuple[RoleSpec, ...] = (
         "Own leads, activities and reservations",
         frozenset({*_STAFF, P.CRM_LEADS_CREATE, P.CRM_LEADS_WORK, P.CRM_RESERVATIONS_MANAGE}),
     ),
-    RoleSpec("marketing_manager", "Marketing Manager", "Campaigns and AI content approval", frozenset({*_STAFF, P.CRM_LEADS_CREATE})),
+    RoleSpec(
+        "marketing_manager",
+        "Marketing Manager",
+        "Campaigns and content approval",
+        frozenset(
+            {
+                *_STAFF,
+                P.CRM_LEADS_CREATE,
+                P.MARKETING_CAMPAIGNS_READ,
+                P.MARKETING_CAMPAIGNS_MANAGE,
+                P.MARKETING_CONTENT_APPROVE,
+                P.MARKETING_COLLATERAL_GENERATE,
+            }
+        ),
+    ),
+    RoleSpec(
+        "marketing_specialist",
+        "Marketing Specialist",
+        "Campaigns and content drafts; submits content for the manager's review",
+        frozenset(
+            {*_STAFF, P.MARKETING_CAMPAIGNS_READ, P.MARKETING_CAMPAIGNS_MANAGE, P.MARKETING_CONTENT_CREATE, P.MARKETING_COLLATERAL_GENERATE}
+        ),
+    ),
     RoleSpec("employee", "Employee", "Own profile and own requests", frozenset(_STAFF)),
 )
 

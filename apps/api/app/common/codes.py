@@ -13,6 +13,8 @@ SEQUENCES = {
     "lead": ("lead_code_seq", "LEAD-", 5),
     "purchase_order": ("purchase_order_code_seq", "PO-", 5),
     "reservation": ("reservation_code_seq", "RSV-", 5),
+    "marketing_campaign": ("marketing_campaign_code_seq", "MC-", 5),
+    "marketing_content": ("marketing_content_code_seq", "MCT-", 5),
 }
 
 

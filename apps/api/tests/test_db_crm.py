@@ -101,12 +101,17 @@ def test_stage_transitions_reasons_and_timeline(sales, db):
         "Stage: qualified → lost — Chose another developer",
         "Stage: new → qualified",
     ]
-    ev = [
-        e.payload["to"]
-        for e in db.scalars(
-            select(AutomationEvent).where(AutomationEvent.event_type == "lead.stage_changed").order_by(AutomationEvent.created_at)
-        )
-    ]
+    # The test runs in one database transaction, so every event shares the same created_at (now() is the transaction
+    # start time) and ordering by it is arbitrary. Rebuild the sequence from the from → to chain instead.
+    rows = db.scalars(
+        select(AutomationEvent).where(AutomationEvent.event_type == "lead.stage_changed", AutomationEvent.entity_id == str(lead["id"]))
+    ).all()
+    step = {e.payload["from"]: e.payload["to"] for e in rows}
+    assert len(step) == len(rows) == 4  # one event per transition, none repeated
+    ev, at = [], "new"
+    while at in step:
+        at = step[at]
+        ev.append(at)
     assert ev == ["qualified", "lost", "viewing", "won"]
     assert db.scalar(select(AuditLog).where(AuditLog.action == "crm.lead_stage_changed")) is not None
 

@@ -42,6 +42,7 @@ def test_catalog_registers_core_workflows_with_known_actions():
         "crm.lead_registration",
         "crm.follow_up_sla",  # Phase 5
         "crm.reservation_expiry",  # Phase 5
+        "marketing.content_review",  # Phase 7B
     }
     assert all(step.action in ACTIONS for w in core.values() for step in w.steps)
     assert ACTIONS["procurement.analyse_quotations"].advisory is True

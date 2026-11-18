@@ -82,7 +82,7 @@ row, so two approvals cannot both spend the same remaining budget.
 
 | Table | Key columns | Constraints / notes |
 |---|---|---|
-| `re_projects` | code, name (NOVA Residences), city, district, description, status (`planning|launched|under_construction|completed`), launch_date, handover_date, amenities JSONB, media JSONB, is_demo_data bool | `UNIQUE (code)` |
+| `re_projects` | code, name (NOVA Residences), city, district, description, status (`planning|launched|under_construction|completed`), launch_date, handover_date, amenities JSONB, media JSONB, is_published bool (**7A**, `0010`: public website + assistant only when true; backfilled true for non-planning projects), is_demo_data bool | `UNIQUE (code)` |
 | `re_buildings` | project_id → re_projects, code, name, floors int | `UNIQUE (project_id, code)` |
 | `re_units` | project_id → re_projects, building_id → re_buildings, unit_number, unit_type (`studio|apartment|duplex|penthouse|townhouse`), bedrooms, bathrooms, floor, area_sqm, view, list_price, status (`available|reserved|sold|blocked`), is_public bool | `UNIQUE (building_id, unit_number)`; `CHECK (area_sqm > 0 AND list_price > 0)`; index `(project_id, status, bedrooms, list_price)` for assistant search |
 | `re_payment_plans` | project_id → re_projects, name, down_payment_pct, installments int, installment_frequency, handover_pct, description, is_active | `CHECK (down_payment_pct BETWEEN 0 AND 100)` |
@@ -102,8 +102,9 @@ row, so two approvals cannot both spend the same remaining budget.
 
 | Table | Key columns | Constraints / notes |
 |---|---|---|
-| `marketing_campaigns` | code, project_id → re_projects, name, objective, channels JSONB, target_audience, start_date, end_date, budget_id → budgets NULL, status (`draft|active|completed|cancelled`) | `CHECK (end_date >= start_date)` |
-| `marketing_contents` | campaign_id → marketing_campaigns, channel (`instagram|x|linkedin|email|website|whatsapp`), language (`en|ar`), title, body, call_to_action, hashtags JSONB, status (`draft|pending_approval|approved|rejected|archived`), generated_by_ai bool, ai_generation_id → ai_generations NULL, version int, created_by | Index `(campaign_id, status)` |
+| `marketing_campaigns` (**built in 7B**, `0011`) | code (MC-), project_id → re_projects, name, objective, description, channels JSONB (non-empty), start_date, end_date, status (`draft|active|completed|archived`), created_by, archived_at | `CHECK (end_date >= start_date)`; index `(status)`, `(project_id)`. *Not built:* target_audience, budget_id |
+| `marketing_contents` (**built in 7B**) | code (MCT-), campaign_id, project_id (from the campaign), channel (`instagram|x|linkedin|email|website|whatsapp`), language (`en|ar`), headline, body, call_to_action, hashtags JSONB, status (`draft|pending_approval|approved|rejected|archived`), version, generated_by_ai, created_by, updated_by, submitted_at, decided_at/by, rejection_comment, archived_at | Index `(campaign_id, status)`. Review history = `approval_requests` (entity `marketing_content`, level `marketing`) |
+| `marketing_content_versions` (**7B**) | content_id, version, channel, language, headline, body, call_to_action, hashtags, note, edited_by, created_at | Append-only (trigger); unique `(content_id, version)` |
 
 ## 10. Automation engine (module: `automation`)
 
@@ -119,11 +120,11 @@ row, so two approvals cannot both spend the same remaining budget.
 
 | Table | Key columns | Constraints / notes |
 |---|---|---|
-| `ai_conversations` | feature (`bi_agent|property_assistant`), user_id → users NULL, visitor_session_id NULL, lead_id → leads NULL, title, status | `CHECK (user_id IS NOT NULL OR visitor_session_id IS NOT NULL)`; index `(user_id, updated_at DESC)` |
-| `ai_messages` | conversation_id → ai_conversations, role (`user|assistant`), content JSONB (API content blocks), created_at | Append-only |
-| `ai_tool_calls` | conversation_id NULL, message_id NULL, tool_name, input JSONB, status (`ok|denied|error`), result_summary, duration_ms | Index `(tool_name, created_at)` |
+| `ai_conversations` (**built in 6C**, `0009`) | feature (`bi_agent|property_assistant`), user_id → users NULL, visitor_session_id NULL (SHA-256 of the visitor cookie), lead_id → leads NULL, contact_consent_at NULL (set from the visitor's own request), title, status, message_count, created_at, updated_at | `CHECK (user_id IS NOT NULL OR visitor_session_id IS NOT NULL)`; index `(user_id, updated_at DESC)` |
+| `ai_messages` (**built in 6C**) | conversation_id → ai_conversations, seq, role (`user|assistant`), content JSONB (API content blocks, thinking replayed unchanged), created_at | Append-only (trigger); unique `(conversation_id, seq)` |
+| `ai_tool_calls` (**built in 6C**) | conversation_id NULL, message_id NULL, actor_user_id NULL, audience, tool_name, input JSONB (contact fields redacted), status (`ok|denied|error`), result_summary, duration_ms, created_at | Index `(tool_name, created_at)` |
 | `ai_generations` | feature (`marketing|digest|lead_summary`), input_ref JSONB, output JSONB, model, prompt_version, created_by NULL | Traceability of generated drafts |
-| `ai_usage` | feature, model, user_id NULL, visitor_session_id NULL, input_tokens, output_tokens, cache_read_tokens, estimated_cost NUMERIC(12,6), latency_ms, status, stop_reason, created_at | Index `(created_at)`, `(feature, created_at)` — daily cost cap = `SUM(estimated_cost) WHERE created_at >= today` |
+| `ai_usage` (**built in Phase 6A**, migration `0008`, append-only trigger) | request_id (unique), provider_request_id, actor_type (`user|system`), actor_user_id, capability, provider, model, served_model, status (`succeeded|failed|rejected`), error_category, provider_status, stop_reason, input/output/cache_read/cache_write tokens, estimated_cost_usd NUMERIC(12,6), duration_ms, created_at — never prompts, responses or credentials. *Original design:* feature, model, user_id NULL, visitor_session_id NULL, input_tokens, output_tokens, cache_read_tokens, estimated_cost NUMERIC(12,6), latency_ms, status, stop_reason, created_at | Index `(created_at)`, `(feature, created_at)` — daily cost cap = `SUM(estimated_cost) WHERE created_at >= today` |
 
 ## 12. Relationships overview
 
@@ -173,3 +174,20 @@ ai_conversations 1─* ai_messages ; leads 0..1─* ai_conversations
 Rules: only the owner module's repository writes its tables; other modules go through its
 service. Personal data (lead contact details) is never written to logs or `ai_usage`; it is
 sent to Claude only inside the property assistant conversation in which the visitor gave it.
+
+> **Phase 7C (migration `0012`).** `re_payment_plans.marketing_status VARCHAR(12) NOT NULL DEFAULT 'unreviewed'`,
+> `CHECK (marketing_status IN ('unreviewed','cleared','excluded'))`. Only `cleared` plans reach marketing outputs (website,
+> property assistant, Marketing Studio facts, brochures, posters). The migration set `cleared` only on plans that belong to
+> the seeded demo dataset (plan and project `is_demo_data`); all other plans stayed `unreviewed`. New permission
+> `marketing.collateral.generate`. Brochures and posters are generated on demand and not stored (audit rows only).
+
+> **Phase 7D (migration `0013`).** `re_projects` adds `address VARCHAR(250)`, `country VARCHAR(80)`, `latitude`/`longitude
+> NUMERIC(9,6)`, `location_verified BOOLEAN NOT NULL DEFAULT false`, `location_verified_at`, `location_verified_by → users
+> (SET NULL)`; CHECKs `latitude BETWEEN -90 AND 90`, `longitude BETWEEN -180 AND 180`, `(latitude IS NULL) = (longitude IS
+> NULL)`, `NOT location_verified OR latitude IS NOT NULL`, `NOT (location_verified AND is_demo_data)`. All empty by default.
+
+> **Phase 7E (migration `0014`).** `re_property_models`: `project_id → re_projects (RESTRICT)`, `unit_id → re_units
+> (RESTRICT, nullable)`, `title`, `caption`, `representation` (`design|as_built|illustrative`), `source`, `licence`, `status`
+> (`draft|approved|archived`), `file_key` (unique, random), `format` (`glb|gltf`), `size_bytes`, `sha256`, `original_filename`,
+> `mesh_count`, `file_version`, `uploaded_at/_by`, `approved_at/_by`, `created_by`, timestamps. CHECKs: approved ⇒ file +
+> source + licence; file fields paired. Index `(project_id, status)`. Model files are stored outside the database.

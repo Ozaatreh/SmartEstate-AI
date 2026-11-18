@@ -35,7 +35,9 @@ CSRF = {"X-Requested-With": "XMLHttpRequest"}
 
 @pytest.fixture(scope="session")
 def settings() -> Settings:
-    return get_settings()
+    # Tests never use real AI credentials, whatever .env says: the default app's AI gateway is disabled and keyless.
+    # Tests that exercise AI install their own gateway over a scripted transport (tests/ai_fakes.py).
+    return get_settings().model_copy(update={"ai_enabled": "false", "anthropic_api_key": None})
 
 
 @pytest.fixture(scope="session")

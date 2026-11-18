@@ -1,0 +1,100 @@
+{% from "_macros.html" import placeholder, wordmark %}
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ dir }}">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data:">
+<title>{{ name }}</title>
+<style>
+{{ font_css|safe }}
+{% include "base.css" %}
+html, body { width: {{ width }}px; height: {{ height }}px; overflow: hidden; }
+.poster { --s: {{ scale }}; position: relative; width: {{ width }}px; height: {{ height }}px; overflow: hidden; background: var(--ink); color: #fff; }
+.u { font-size: calc(var(--s) * 1px); }
+.media { position: absolute; inset: 0; background: var(--stone); }
+.panel { position: absolute; display: flex; flex-direction: column; padding: calc(var(--s) * 64px); gap: calc(var(--s) * 22px); }
+.head { display: flex; justify-content: space-between; align-items: center; gap: calc(var(--s) * 20px); }
+.head .wordmark { font-size: calc(var(--s) * 26px); gap: calc(var(--s) * 14px); }
+.head .wordmark .mark { width: calc(var(--s) * 44px); height: calc(var(--s) * 44px); }
+.tag { font-size: calc(var(--s) * 19px); font-weight: 600; padding: calc(var(--s) * 9px) calc(var(--s) * 18px); border-radius: 999px; background: var(--clay); color: #fff; white-space: nowrap; }
+.name { font-family: var(--display); font-weight: 520; font-size: calc(var(--s) * 96px); line-height: 1.02; letter-spacing: -0.015em; }
+html[lang="ar"] .name { font-weight: 700; letter-spacing: 0; line-height: 1.2; }
+.loc { font-size: calc(var(--s) * 28px); opacity: .82; margin-top: calc(var(--s) * -6px); }
+.price small { display: block; font-size: calc(var(--s) * 22px); opacity: .8; }
+.price strong { display: inline-block; margin-top: calc(var(--s) * 8px); font-size: calc(var(--s) * 58px); font-weight: 700; letter-spacing: -0.01em; }
+.facts { display: flex; flex-wrap: wrap; gap: calc(var(--s) * 12px); list-style: none; }
+.facts li { font-size: calc(var(--s) * 23px); font-weight: 500; padding: calc(var(--s) * 11px) calc(var(--s) * 20px); border-radius: calc(var(--s) * 12px); background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); }
+.cta-row { display: flex; align-items: center; gap: calc(var(--s) * 22px); flex-wrap: wrap; }
+.cta { display: inline-block; font-size: calc(var(--s) * 27px); font-weight: 650; padding: calc(var(--s) * 18px) calc(var(--s) * 34px); border-radius: 999px; background: #fff; color: var(--ink); }
+.site { font-size: calc(var(--s) * 22px); opacity: .85; }
+.legal { font-size: calc(var(--s) * 17px); opacity: .7; }
+.spacer { flex: 1; }
+
+/* classic: full-bleed image, text on a gradient */
+.tpl-classic .panel { inset: 0; }
+.tpl-classic .shade { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(20,33,61,.22) 0%, rgba(20,33,61,0) 22%, rgba(20,33,61,0) 40%, rgba(20,33,61,.9) 78%, rgba(20,33,61,.97) 100%); }
+.tpl-classic.or-landscape .shade { background: linear-gradient(to var(--toward), rgba(20,33,61,.97) 0%, rgba(20,33,61,.88) 48%, rgba(20,33,61,0) 80%); }
+html[dir="ltr"] .tpl-classic.or-landscape { --toward: right; }
+html[dir="rtl"] .tpl-classic.or-landscape { --toward: left; }
+.tpl-classic.or-landscape .panel { inset-inline-end: 38%; }
+.tpl-classic .price strong { background: var(--clay); padding: calc(var(--s) * 8px) calc(var(--s) * 20px); border-radius: calc(var(--s) * 14px); }
+
+/* split: image and a solid panel */
+.tpl-split .media { inset: 0 0 46% 0; }
+.tpl-split .panel { inset: 54% 0 0 0; background: var(--ink); }
+.tpl-split .head-float { position: absolute; top: calc(var(--s) * 56px); inset-inline: calc(var(--s) * 64px); }
+.tpl-split .head-float .wordmark { background: rgba(255,255,255,.92); color: var(--ink); padding: calc(var(--s) * 10px) calc(var(--s) * 20px) calc(var(--s) * 10px) calc(var(--s) * 10px); border-radius: 999px; }
+.tpl-split.or-portrait .media { inset: 0 0 50% 0; }
+.tpl-split.or-portrait .panel { inset: 50% 0 0 0; padding-top: calc(var(--s) * 90px); padding-bottom: calc(var(--s) * 90px); gap: calc(var(--s) * 34px); }
+.or-portrait .name { font-size: calc(var(--s) * 112px); }
+.or-portrait .price strong { font-size: calc(var(--s) * 68px); }
+.or-portrait .facts li { font-size: calc(var(--s) * 27px); }
+.tpl-split.or-landscape .media { inset: 0; inset-inline-start: 50%; }
+.tpl-split.or-landscape .panel { inset: 0; inset-inline-end: 50%; }
+.tpl-split .price strong { color: #e8b593; }
+
+/* minimal: type-led on sand, image as a framed band */
+.tpl-minimal { background: var(--sand); color: var(--ink); }
+.tpl-minimal .media { inset: auto calc(var(--s) * 64px) calc(var(--s) * 64px); height: 34%; border-radius: calc(var(--s) * 28px); overflow: hidden; }
+.tpl-minimal .panel { inset: 0 0 calc(34% + var(--s) * 64px) 0; }
+.tpl-minimal.or-portrait .media { height: 40%; }
+.tpl-minimal.or-portrait .panel { inset: 0 0 calc(40% + var(--s) * 64px) 0; padding-top: calc(var(--s) * 110px); }
+.tpl-minimal.or-landscape .media { inset: calc(var(--s) * 56px); inset-inline-start: 58%; height: auto; }
+.tpl-minimal.or-landscape .panel { inset: 0; inset-inline-end: 42%; }
+.tpl-minimal .name { color: var(--ink); }
+.tpl-minimal .price strong { color: var(--clay); }
+.tpl-minimal .facts li { background: #fff; border-color: var(--stone); color: var(--ink); }
+.tpl-minimal .cta { background: var(--ink); color: #fff; }
+.tpl-minimal .tag { background: var(--clay-soft); color: var(--clay); }
+.tpl-minimal .wordmark { color: var(--ink); }
+
+/* landscape formats are short: tighten */
+.or-landscape .name { font-size: calc(var(--s) * 104px); }
+.or-landscape .panel { padding: calc(var(--s) * 60px) calc(var(--s) * 70px); gap: calc(var(--s) * 20px); }
+</style>
+</head>
+<body>
+<div class="poster tpl-{{ template }} or-{{ orientation }}">
+  <div class="media">{% if hero %}<img class="hero-img" src="{{ hero }}" alt="">{% else %}{{ placeholder("poster") }}{% endif %}</div>
+  {% if template == "classic" %}<div class="shade"></div>{% endif %}
+  {% if template == "split" and orientation != "landscape" %}
+  <div class="head head-float">{{ wordmark() }}{% if is_demo %}<span class="tag">{{ t("demo_title") }}</span>{% endif %}</div>
+  {% endif %}
+  <div class="panel">
+    {% if not (template == "split" and orientation != "landscape") %}
+    <div class="head">{{ wordmark(light=(template != "minimal")) }}{% if is_demo %}<span class="tag">{{ t("demo_title") }}</span>{% endif %}</div>
+    {% endif %}
+    {% if template == "classic" and orientation != "landscape" %}<div class="spacer"></div>{% endif %}
+    <div>
+      <h1 class="name"><bdi>{{ name }}</bdi></h1>
+      <p class="loc" style="margin-top:calc(var(--s) * 10px)"><bdi>{{ location }}</bdi></p>
+    </div>
+    {% if price_from %}<div class="price"><small>{{ t("starting_from") }}</small><strong>{{ price_from }}</strong></div>{% endif %}
+    {% if facts %}<ul class="facts">{% for f in facts %}<li><bdi>{{ f }}</bdi></li>{% endfor %}</ul>{% endif %}
+    {% if template != "classic" or orientation == "landscape" %}<div class="spacer"></div>{% endif %}
+    <div class="cta-row"><span class="cta">{{ cta }}</span>{% if website %}<span class="site"><bdi dir="ltr">{{ website }}</bdi></span>{% endif %}</div>
+    {% if is_demo %}<p class="legal">{{ t("demo_short") }}</p>{% endif %}
+  </div>
+</div>
+</body>
+</html>

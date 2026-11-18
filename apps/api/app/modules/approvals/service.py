@@ -49,15 +49,31 @@ LEVEL_PERMISSION = {
     "department": Perm.APPROVALS_DEPARTMENT.value,
     "finance": Perm.APPROVALS_FINANCE.value,
     "executive": Perm.APPROVALS_EXECUTIVE.value,
+    "marketing": Perm.MARKETING_CONTENT_APPROVE.value,
 }
-LEVEL_LABEL = {"department": "Department manager", "finance": "Finance", "executive": "Executive"}
-POOL_LABEL = {"department": "Department approvers", "finance": "Finance approvers", "executive": "Executive approvers"}
-LEVEL_ORDER = ("department", "finance", "executive")
+LEVEL_LABEL = {"department": "Department manager", "finance": "Finance", "executive": "Executive", "marketing": "Marketing manager"}
+POOL_LABEL = {
+    "department": "Department approvers",
+    "finance": "Finance approvers",
+    "executive": "Executive approvers",
+    "marketing": "Marketing approvers",
+}
+LEVEL_ORDER = ("department", "finance", "executive", "marketing")
 SORTABLE = {"created_at": ApprovalRequest.created_at, "amount": ApprovalRequest.amount, "code": ApprovalRequest.entity_code}
 
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def _amount_text(req: ApprovalRequest) -> str:
+    """Non-monetary documents (marketing content) carry amount 0: don't show "SAR 0.00" to approvers."""
+    return f" · SAR {req.amount:,.2f}" if req.amount else ""
+
+
+def _excluded(req: ApprovalRequest) -> set[str]:
+    """Users who may never decide this request besides the requester (e.g. every author of a marketing content item)."""
+    return {str(u) for u in (req.flags or {}).get("excluded_approvers", [])}
 
 
 def _person(user: User | None) -> PersonRef | None:
@@ -125,11 +141,14 @@ class ApprovalService:
         title: str,
         amount: Decimal,
         requested_by: uuid.UUID,
-        department_id: uuid.UUID,
+        department_id: uuid.UUID | None,
         over_budget: bool,
         actor_user_id: uuid.UUID,
+        excluded_approvers: list[uuid.UUID] | None = None,
     ) -> ApprovalRequest:
-        """Creates the approval request inside the caller's transaction and activates its first step."""
+        """Creates the approval request inside the caller's transaction and activates its first step.
+
+        ``excluded_approvers`` (optional) are users who may never decide it, in addition to the requester."""
         policy, levels = self.planned_levels(entity_type, amount, over_budget=over_budget)
         req = ApprovalRequest(
             entity_type=entity_type,
@@ -139,7 +158,11 @@ class ApprovalService:
             amount=q2(amount),
             requested_by=requested_by,
             policy_id=policy.id,
-            flags={"over_budget": over_budget, "department_id": str(department_id)},
+            flags={
+                "over_budget": over_budget,
+                "department_id": str(department_id) if department_id else None,
+                **({"excluded_approvers": sorted({str(u) for u in excluded_approvers})} if excluded_approvers else {}),
+            },
         )
         for i, level in enumerate(levels, start=1):
             req.steps.append(ApprovalStep(step_order=i, level=level, label=LEVEL_LABEL[level], required_permission=LEVEL_PERMISSION[level]))
@@ -186,9 +209,11 @@ class ApprovalService:
         self.session.flush()
         link = subject_for(req.entity_type).link(str(req.entity_id))
         title = f"Approval needed: {req.entity_code}"
-        body = f"{req.title} · SAR {req.amount:,.2f} · {step.label} approval"
+        body = f"{req.title}{_amount_text(req)} · {step.label} approval"
         recipients = (
-            [step.assigned_user_id] if step.assigned_user_id else self._pool_users(step.required_permission, req.requested_by, deciders)
+            [step.assigned_user_id]
+            if step.assigned_user_id
+            else self._pool_users(step.required_permission, req.requested_by, deciders, _excluded(req))
         )
         for uid in recipients:
             self.notifications.notify(
@@ -226,12 +251,14 @@ class ApprovalService:
             hops += 1
         return None, "; ".join(reasons) + "; routed to department approvers."
 
-    def _pool_users(self, permission: str, requester: uuid.UUID, deciders: set[uuid.UUID]) -> list[uuid.UUID]:
+    def _pool_users(
+        self, permission: str, requester: uuid.UUID, deciders: set[uuid.UUID], excluded: set[str] | None = None
+    ) -> list[uuid.UUID]:
         rows = IdentityRepository(self.session).users_with_permission(permission)
-        return [u for u in rows if u != requester and u not in deciders]
+        return [u for u in rows if u != requester and u not in deciders and str(u) not in (excluded or set())]
 
     # --- SLA: reminders, escalation, route checks (called by the Purchase Request Approval workflow) ---------------
-    def overdue_steps(self, older_than_hours: float, *, assigned_only: bool = False) -> list[ApprovalStep]:
+    def overdue_steps(self, older_than_hours: float, *, assigned_only: bool = False, entity_type: str | None = None) -> list[ApprovalStep]:
         stmt = (
             select(ApprovalStep)
             .join(ApprovalRequest, ApprovalRequest.id == ApprovalStep.request_id)
@@ -244,11 +271,15 @@ class ApprovalService:
         )
         if assigned_only:
             stmt = stmt.where(ApprovalStep.assigned_user_id.is_not(None))
+        if entity_type:
+            stmt = stmt.where(ApprovalRequest.entity_type == entity_type)
         return list(self.session.scalars(stmt).unique())
 
     def _recipients(self, req: ApprovalRequest, step: ApprovalStep) -> list[uuid.UUID]:
         deciders = {s.decision.decided_by for s in req.steps if s.decision}
-        return [step.assigned_user_id] if step.assigned_user_id else self._pool_users(step.required_permission, req.requested_by, deciders)
+        if step.assigned_user_id:
+            return [step.assigned_user_id]
+        return self._pool_users(step.required_permission, req.requested_by, deciders, _excluded(req))
 
     def remind(self, step: ApprovalStep, *, day_key: str) -> int:
         """Reminder to whoever must decide the step; at most one per step per day (dedupe)."""
@@ -261,7 +292,7 @@ class ApprovalService:
                 type="approval.reminder",
                 level="warning",
                 title=f"Reminder: {req.entity_code} awaits your decision",
-                body=f"{req.title} · SAR {req.amount:,.2f} · waiting {hours} h at {step.label}",
+                body=f"{req.title}{_amount_text(req)} · waiting {hours} h at {step.label}",
                 link=subject_for(req.entity_type).link(str(req.entity_id)),
                 entity_type=req.entity_type,
                 entity_id=str(req.entity_id),
@@ -332,7 +363,7 @@ class ApprovalService:
                 type="approval.escalated",
                 level="warning",
                 title=f"Escalated to you: {req.entity_code}",
-                body=f"{req.title} · SAR {req.amount:,.2f} · {note}",
+                body=f"{req.title}{_amount_text(req)} · {note}",
                 link=link,
                 entity_type=req.entity_type,
                 entity_id=str(req.entity_id),
@@ -382,6 +413,8 @@ class ApprovalService:
         step = next(s for s in req.steps if s.step_order == req.current_step)
         if req.requested_by == principal.user_id:
             return False, "You can't approve a request you submitted."
+        if str(principal.user_id) in _excluded(req):
+            return False, "You can't approve content you wrote or edited."
         if any(s.decision and s.decision.decided_by == principal.user_id for s in req.steps):
             return False, "You already decided an earlier step of this request."
         if step.assigned_user_id is not None:
@@ -536,10 +569,12 @@ class ApprovalService:
                 )
             )
         already = exists().where(ApprovalDecision.request_id == ApprovalRequest.id, ApprovalDecision.decided_by == principal.user_id)
+        excluded = ApprovalRequest.flags["excluded_approvers"].contains([str(principal.user_id)])
         return and_(
             ApprovalRequest.status == "pending",
             ApprovalRequest.requested_by != principal.user_id,
             ~already,
+            ~func.coalesce(excluded, False),
             exists().where(
                 ApprovalStep.request_id == ApprovalRequest.id, ApprovalStep.step_order == ApprovalRequest.current_step, *step_ok
             ),

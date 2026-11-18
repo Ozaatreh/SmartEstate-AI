@@ -100,7 +100,7 @@ def test_login_events_are_audited(client, make_user, db):
     user = make_user()
     login(client, user, "bad")
     login(client, user)
-    actions = list(db.scalars(select(AuditLog.action).where(AuditLog.actor_user_id == user.id).order_by(AuditLog.created_at)))
+    actions = list(db.scalars(select(AuditLog.action).where(AuditLog.actor_user_id == user.id).order_by(AuditLog.seq)))
     assert actions == ["auth.login_failed", "auth.login_succeeded"]
 
 

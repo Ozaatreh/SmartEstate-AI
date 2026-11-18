@@ -1,0 +1,230 @@
+{% from "_macros.html" import placeholder, wordmark, mark %}
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ dir }}">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data:">
+<title>{{ name }}</title>
+<style>
+{{ font_css|safe }}
+{% include "base.css" %}
+@page { size: A4; margin: 0; }
+html, body { width: 210mm; }
+.page { position: relative; width: 210mm; height: 297mm; overflow: hidden; break-after: page; background: #fff; }
+.page:last-child { break-after: auto; }
+
+/* cover */
+.cover-hero { position: absolute; inset: 0 0 92mm 0; background: var(--stone); }
+.cover-hero::after { content: ""; position: absolute; inset: auto 0 0 0; height: 40mm; background: linear-gradient(to bottom, rgba(20,33,61,0), rgba(20,33,61,.55)); }
+.cover-panel { position: absolute; inset: auto 0 0 0; height: 92mm; background: var(--ink); color: #fff; padding: 15mm 18mm 13mm; display: flex; flex-direction: column; }
+.cover-top { position: absolute; top: 14mm; inset-inline: 18mm; display: flex; justify-content: space-between; align-items: center; z-index: 2; }
+.cover-top .wordmark { background: rgba(255,255,255,.92); color: var(--ink); padding: 7px 14px 7px 8px; border-radius: 999px; font-size: 13px; }
+.demo-ribbon { background: var(--clay); color: #fff; font-size: 10.5px; font-weight: 600; letter-spacing: .02em; padding: 6px 12px; border-radius: 999px; }
+.cover-name { font-family: var(--display); font-size: 50px; line-height: 1.04; font-weight: 520; letter-spacing: -0.015em; }
+html[lang="ar"] .cover-name { font-weight: 700; letter-spacing: 0; line-height: 1.25; }
+.cover-loc { margin-top: 9px; font-size: 14px; color: rgba(255,255,255,.78); }
+.cover-meta { margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 10mm; }
+.cover-facts { display: flex; gap: 9mm; font-size: 11px; color: rgba(255,255,255,.7); }
+.cover-facts b { display: block; margin-top: 3px; font-size: 13.5px; font-weight: 600; color: #fff; }
+.price-pill { text-align: end; }
+.price-pill small { display: block; font-size: 11px; color: rgba(255,255,255,.7); letter-spacing: .04em; text-transform: uppercase; }
+html[lang="ar"] .price-pill small { text-transform: none; letter-spacing: 0; }
+.price-pill strong { display: inline-block; margin-top: 5px; font-size: 25px; font-weight: 650; color: #fff; background: var(--clay); padding: 7px 14px; border-radius: 10px; }
+
+/* inner pages */
+.inner { padding: 19mm 18mm 26mm; height: 100%; display: flex; flex-direction: column; gap: 10mm; }
+.eyebrow { font-size: 10.5px; font-weight: 650; letter-spacing: .14em; text-transform: uppercase; color: var(--clay); }
+html[lang="ar"] .eyebrow { letter-spacing: 0; font-size: 12px; }
+h2 { font-family: var(--display); font-size: 27px; line-height: 1.15; font-weight: 520; color: var(--ink); margin-top: 5px; }
+html[lang="ar"] h2 { font-weight: 700; }
+.lead { font-size: 13.5px; line-height: 1.75; color: #2c3547; max-width: 150mm; }
+.facts-grid { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--stone); }
+.facts-grid div { padding: 11px 0 12px; border-bottom: 1px solid var(--stone); padding-inline-end: 6mm; }
+.facts-grid dt { font-size: 10.5px; color: var(--muted); }
+.facts-grid dd { margin-top: 4px; font-size: 14px; font-weight: 600; color: var(--ink); }
+.amenities { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 10mm; margin-top: 6mm; }
+.amenities li { list-style: none; display: flex; align-items: center; gap: 10px; font-size: 13px; padding: 10px 12px; background: var(--sand); border-radius: 8px; }
+.amenities li::before { content: ""; width: 8px; height: 8px; flex: none; border-radius: 2px; background: var(--clay); }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 5mm; }
+th { text-align: start; font-size: 10.5px; font-weight: 600; color: var(--muted); padding: 0 0 8px; border-bottom: 1.5px solid var(--ink); }
+td { padding: 11px 0; border-bottom: 1px solid var(--stone); }
+td.type { font-weight: 600; color: var(--ink); }
+td.num, th.num { text-align: end; }
+td.price { font-weight: 650; color: var(--ink); }
+.plans { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; margin-top: 5mm; }
+.plan { border: 1px solid var(--stone); border-radius: 12px; padding: 14px 16px; }
+.plan h3 { font-size: 13.5px; font-weight: 650; color: var(--ink); }
+.plan dl { margin-top: 10px; display: grid; gap: 7px; }
+.plan dl div { display: flex; justify-content: space-between; font-size: 12px; }
+.plan dt { color: var(--muted); }
+.plan dd { font-weight: 600; }
+.note { font-size: 10.5px; color: var(--muted); margin-top: 4mm; }
+.footer { position: absolute; inset: auto 18mm 11mm; display: flex; justify-content: space-between; align-items: center; font-size: 9.5px; color: var(--muted); border-top: 1px solid var(--stone); padding-top: 9px; }
+.footer .wordmark { font-size: 10.5px; color: var(--ink); gap: 7px; }
+.footer .wordmark .mark { width: 16px; height: 16px; }
+
+/* back page */
+.back { background: var(--ink); color: #fff; }
+.back .inner { justify-content: space-between; }
+.back h2 { color: #fff; }
+.contact { display: grid; gap: 14px; margin-top: 8mm; }
+.contact div { display: flex; gap: 6mm; font-size: 15px; border-bottom: 1px solid rgba(255,255,255,.14); padding-bottom: 12px; }
+.contact dt { width: 38mm; color: rgba(255,255,255,.62); font-size: 12px; padding-top: 2px; }
+.contact dd { font-weight: 600; }
+.enquire { font-size: 12.5px; line-height: 1.7; color: rgba(255,255,255,.75); margin-top: 7mm; max-width: 140mm; }
+.disclosure { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16); border-inline-start: 4px solid var(--clay); border-radius: 10px; padding: 14px 16px; }
+.disclosure h3 { font-size: 13px; font-weight: 650; }
+.disclosure p { margin-top: 6px; font-size: 11.5px; line-height: 1.65; color: rgba(255,255,255,.78); }
+.back-foot { display: flex; justify-content: space-between; align-items: flex-end; font-size: 10.5px; color: rgba(255,255,255,.6); }
+.back-foot .wordmark { font-size: 15px; }
+.band { flex: 1; min-height: 45mm; border-radius: 14px; overflow: hidden; background: var(--stone); }
+.band.dark { opacity: .9; }
+.highlights { margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; }
+.highlights div { background: var(--sand); border-radius: 12px; padding: 16px 18px; }
+.highlights small { display: block; font-size: 11px; color: var(--muted); }
+.highlights strong { display: block; margin-top: 6px; font-size: 20px; font-weight: 650; color: var(--ink); }
+.back .inner { gap: 9mm; }
+.credits { font-size: 10px; color: rgba(255,255,255,.6); margin-top: 4mm; }
+</style>
+</head>
+<body>
+
+<section class="page cover">
+  <div class="cover-hero">
+    {% if hero %}<img class="hero-img" src="{{ hero }}" alt="">{% else %}{{ placeholder("cover") }}{% endif %}
+  </div>
+  <div class="cover-top">
+    {{ wordmark() }}
+    {% if is_demo %}<span class="demo-ribbon">{{ t("demo_title") }}</span>{% endif %}
+  </div>
+  <div class="cover-panel">
+    <h1 class="cover-name"><bdi>{{ name }}</bdi></h1>
+    <p class="cover-loc"><bdi>{{ location }}</bdi></p>
+    <div class="cover-meta">
+      <div class="cover-facts">
+        <div>{{ t("status") }}<b>{{ status }}</b></div>
+        {% if handover %}<div>{{ t("handover") }}<b>{{ handover }}</b></div>{% endif %}
+      </div>
+      {% if price_from %}
+      <div class="price-pill"><small>{{ t("starting_from") }}</small><strong>{{ price_from }}</strong></div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% if description or key_facts or amenities %}
+<section class="page">
+  <div class="inner">
+    {% if description or key_facts %}
+    <div>
+      <p class="eyebrow">{{ t("overview") if description else t("location") }}</p>
+      <h2><bdi>{{ name }}</bdi></h2>
+      {% if description %}<p class="lead" style="margin-top:5mm"><bdi>{{ description }}</bdi></p>{% endif %}
+    </div>
+    {% endif %}
+    {% if key_facts %}
+    <div>
+      <p class="eyebrow" style="margin-bottom:4mm">{{ t("location") }}</p>
+      <dl class="facts-grid">
+        {% for label, value, is_data in key_facts %}
+        <div><dt>{{ label }}</dt><dd>{% if is_data %}<bdi>{{ value }}</bdi>{% else %}{{ value }}{% endif %}</dd></div>
+        {% endfor %}
+      </dl>
+    </div>
+    {% endif %}
+    {% if amenities %}
+    <div>
+      <p class="eyebrow">{{ t("amenities") }}</p>
+      <ul class="amenities">
+        {% for a in amenities %}<li><bdi>{{ a }}</bdi></li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    <div class="band">{% if hero %}<img class="hero-img" src="{{ hero }}" alt="">{% else %}{{ placeholder("band2") }}{% endif %}</div>
+  </div>
+  <div class="footer">{{ wordmark() }}<span><bdi>{{ name }}</bdi>{% if is_demo %} · {{ t("demo_short") }}{% endif %}</span></div>
+</section>
+{% endif %}
+
+{% if units or plans %}
+<section class="page">
+  <div class="inner">
+    {% if units %}
+    <div>
+      <p class="eyebrow">{{ t("units") }}</p>
+      <table>
+        <thead><tr>
+          <th>{{ t("unit_type") }}</th><th>{{ t("area") }}</th><th class="num">{{ t("available") }}</th>
+          {% if show_prices %}<th class="num">{{ t("price_from") }}</th>{% endif %}
+        </tr></thead>
+        <tbody>
+          {% for u in units %}
+          <tr>
+            <td class="type">{{ u.type }}</td><td><bdi dir="ltr">{{ u.area_nums }}</bdi> {{ u.area_unit }}</td><td class="num">{{ u.available }}</td>
+            {% if show_prices %}<td class="num price">{{ u.price }}</td>{% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if show_prices %}<p class="note">{{ t("price_note") }} {{ t("as_of") }} {{ as_of }}.</p>{% endif %}
+    </div>
+    {% endif %}
+    {% if plans %}
+    <div>
+      <p class="eyebrow">{{ t("payment_plans") }}</p>
+      <div class="plans">
+        {% for p in plans %}
+        <div class="plan">
+          <h3><bdi>{{ p.name }}</bdi></h3>
+          <dl>
+            <div><dt>{{ t("down_payment") }}</dt><dd>{{ p.down }}</dd></div>
+            {% if p.installments %}<div><dt>{{ t("installments") }}</dt><dd>{{ p.installments }}</dd></div>{% endif %}
+            {% if p.handover %}<div><dt>{{ t("on_handover") }}</dt><dd>{{ p.handover }}</dd></div>{% endif %}
+          </dl>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if highlights %}
+    <div class="highlights">
+      {% for label, value in highlights %}<div><small>{{ label }}</small><strong>{{ value }}</strong></div>{% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  <div class="footer">{{ wordmark() }}<span><bdi>{{ name }}</bdi>{% if is_demo %} · {{ t("demo_short") }}{% endif %}</span></div>
+</section>
+{% endif %}
+
+<section class="page back">
+  <div class="inner">
+    <div>
+      {% if contact %}
+      <p class="eyebrow" style="color:#e3b190">{{ t("contact") }}</p>
+      <h2><bdi>{{ name }}</bdi></h2>
+      <dl class="contact">
+        {% if contact.phone %}<div><dt>{{ t("phone") }}</dt><dd><bdi dir="ltr">{{ contact.phone }}</bdi></dd></div>{% endif %}
+        {% if contact.email %}<div><dt>{{ t("email") }}</dt><dd><bdi dir="ltr">{{ contact.email }}</bdi></dd></div>{% endif %}
+        {% if contact.website %}<div><dt>{{ t("website") }}</dt><dd><bdi dir="ltr">{{ contact.website }}</bdi></dd></div>{% endif %}
+      </dl>
+      {% else %}
+      <h2><bdi>{{ name }}</bdi></h2>
+      <p class="cover-loc" style="margin-top:3mm"><bdi>{{ location }}</bdi></p>
+      {% endif %}
+      <p class="enquire">{{ t("enquire") }}</p>
+    </div>
+    <div class="band dark">{% if hero %}<img class="hero-img" src="{{ hero }}" alt="">{% else %}{{ placeholder("band4") }}{% endif %}</div>
+    <div>
+      {% if is_demo %}
+      <div class="disclosure"><h3>{{ t("demo_title") }}</h3><p>{{ t("demo_body") }}</p></div>
+      {% endif %}
+      {% if credits %}
+      <p class="credits">{{ t("image_credit") }}: {% for c in credits %}<bdi>{{ c.source }} — {{ c.licence }}</bdi>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+      {% endif %}
+      <div class="back-foot" style="margin-top:9mm">{{ wordmark(light=true) }}<span>{{ t("as_of") }} {{ as_of }}</span></div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

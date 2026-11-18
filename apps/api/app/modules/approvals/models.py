@@ -25,7 +25,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, Timestamps, UUIDPrimaryKey, enum_check
 from app.modules.identity.models import User
 
-APPROVAL_LEVELS = ("department", "finance", "executive")
+APPROVAL_LEVELS = ("department", "finance", "executive", "marketing")  # marketing: Phase 7B content review
 REQUEST_STATUSES = ("pending", "approved", "rejected", "cancelled")
 STEP_STATUSES = ("waiting", "pending", "approved", "rejected", "skipped")
 DECISIONS = ("approved", "rejected")

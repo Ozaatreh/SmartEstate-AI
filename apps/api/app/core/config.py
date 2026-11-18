@@ -18,9 +18,7 @@ PLACEHOLDER_MARKERS = ("<", "change-me", "changeme")
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=REPO_ROOT / ".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=False
-    )
+    model_config = SettingsConfigDict(env_file=REPO_ROOT / ".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=False)
 
     app_env: Literal["development", "test", "staging", "production"] = "development"
     app_name: str = "SmartEstate AI"
@@ -39,7 +37,9 @@ class Settings(BaseSettings):
     session_ttl_minutes: int = Field(default=480, ge=5, le=24 * 60)
     cookie_name: str = "se_session"
     cookie_secure: bool | None = None
-    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    # Marketing site (5173) and internal dashboard (5174). Both proxy /api in development, so this only matters for
+    # direct cross-origin calls.
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
 
     login_max_failures: int = Field(default=5, ge=1)
     login_lock_minutes: int = Field(default=15, ge=1)
@@ -49,11 +49,31 @@ class Settings(BaseSettings):
 
     seed_admin_email: str = "admin@smartestate.demo"
     seed_demo_password: SecretStr | None = None
+    # Hosted evaluation demo only: seed the fictional demo accounts and data in *staging* on first boot.
+    # Refused in production (see _production_guards). Development/test always seed demo data.
+    seed_demo_data: bool = False
 
     # --- AI: lenient on purpose (validated by app.ai.status, never at startup) ---
     ai_enabled: str = "false"
     anthropic_api_key: SecretStr | None = None
     ai_default_model: str = ""
+    ai_request_timeout_seconds: str = "60"
+    ai_max_retries: str = "2"
+    ai_max_output_tokens: str = "16000"
+    ai_daily_cost_cap_usd: str = "10"
+    # Per-feature switch (Phase 7): marketing generation stays off even while AI_ENABLED=true.
+    ai_marketing_studio_enabled: str = "false"
+
+    # --- Brochures & posters (Phase 7C). Contact lines are printed only when set; nothing is ever made up. ---
+    collateral_contact_phone: str = ""
+    collateral_contact_email: str = ""
+    collateral_website_url: str = ""
+    # Folder holding approved project images (files referenced by re_projects.media entries with "file").
+    collateral_media_dir: str = "var/media"
+
+    # --- 3D property models (Phase 7E) ---
+    model_storage_dir: str = "var/models"  # relative to apps/api; never exposed
+    model_max_upload_mb: int = 50
 
     @field_validator("cookie_secure", mode="before")
     @classmethod
@@ -68,11 +88,18 @@ class Settings(BaseSettings):
                 raise ValueError("SECRET_KEY must be a real secret of at least 32 characters")
             if self.cookie_secure is False:
                 raise ValueError("COOKIE_SECURE cannot be false outside development/test")
+        if self.app_env == "production" and self.seed_demo_data:
+            raise ValueError("SEED_DEMO_DATA is for staging demos only and cannot be enabled in production")
         return self
 
     @property
     def is_dev_like(self) -> bool:
         return self.app_env in ("development", "test")
+
+    @property
+    def seeds_demo_data(self) -> bool:
+        """Demo accounts and the fictional organisation: always in development/test, in staging only when asked."""
+        return self.is_dev_like or (self.app_env == "staging" and self.seed_demo_data)
 
     @property
     def secure_cookies(self) -> bool:

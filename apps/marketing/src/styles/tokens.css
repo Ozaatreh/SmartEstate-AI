@@ -1,0 +1,111 @@
+/*
+ * SmartEstate public website — design tokens.
+ * Light = "Premium Luxury" (warm ivory, terracotta, deep charcoal-navy).
+ * Dark  = "Dark Architectural" (charcoal layers, warm bronze accent) — a separate palette, not an inversion.
+ * Components use only these semantic names (via Tailwind), never raw colour values. The dashboard has its own copy.
+ *
+ * Brand palette (approved): ivory #F3EEE6 · white #FFFFFF · terracotta #A95632 · charcoal-navy #27313C ·
+ * warm gray #817A72 · border #E5DED4. Small text uses darker warm grays than #817A72 so it meets WCAG AA (4.5:1).
+ */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --canvas: #f3eee6; /* warm ivory page */
+  --surface: #ffffff; /* cards, panels */
+  --surface-subtle: #faf7f2;
+  --surface-sunken: #ebe4d9;
+  --surface-inverse: #27313c; /* deep bands (CTA, footer accents) */
+  --border: #e5ded4;
+  --border-subtle: #eee8df;
+  --border-strong: #d3c9bb;
+
+  /* Text */
+  --text: #27313c;
+  --text-secondary: #57514b;
+  --text-muted: #6e675f;
+  --text-subtle: #817a72; /* approved warm gray: large text, eyebrows, decoration */
+  --text-inverse: #f6f1ea;
+
+  /* Brand & actions */
+  --primary: #27313c;
+  --primary-hover: #1c242d;
+  --primary-foreground: #ffffff;
+  --brand: #a95632; /* terracotta */
+  --brand-hover: #8e4527;
+  --brand-foreground: #ffffff;
+  --brand-subtle: #f4e5da;
+  --ai: #5b4bc4;
+  --ai-subtle: #efedfa;
+
+  /* Status */
+  --success: #1f7a43;
+  --success-subtle: #e6f2ea;
+  --warning: #a8530a;
+  --warning-subtle: #fbefe1;
+  --danger: #b42318;
+  --danger-subtle: #fbeae8;
+  --info: #2457b5;
+  --info-subtle: #e9eff9;
+  --neutral: #5b5650;
+  --neutral-subtle: #efeae3;
+
+  /* Shape & elevation */
+  --radius-control: 8px;
+  --radius-panel: 14px;
+  --radius-dialog: 16px;
+  --shadow-card: 0 1px 2px rgb(39 49 60 / 0.04), 0 8px 24px -12px rgb(39 49 60 / 0.12);
+  --shadow-lift: 0 2px 4px rgb(39 49 60 / 0.05), 0 18px 40px -18px rgb(39 49 60 / 0.25);
+  --shadow-overlay: 0 8px 24px -6px rgb(39 49 60 / 0.16), 0 2px 6px -2px rgb(39 49 60 / 0.08);
+  --focus-ring: 0 0 0 2px var(--canvas), 0 0 0 4px var(--brand);
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 250ms;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --canvas: #191b1e; /* main background */
+  --surface: #292c30; /* cards */
+  --surface-subtle: #222529; /* secondary background / alternating bands */
+  --surface-sunken: #1e2023;
+  --surface-inverse: #101113;
+  --border: #363a3f;
+  --border-subtle: #2d3034;
+  --border-strong: #4a4f55;
+
+  --text: #f4f0ea;
+  --text-secondary: #b6b2ad;
+  --text-muted: #a19c96;
+  --text-subtle: #8f8a84;
+  --text-inverse: #f4f0ea;
+
+  --primary: #f4f0ea; /* light buttons on charcoal */
+  --primary-hover: #ffffff;
+  --primary-foreground: #191b1e;
+  --brand: #c17a4b; /* warm bronze */
+  --brand-hover: #d08a5b;
+  --brand-foreground: #191b1e; /* dark text on bronze keeps AA contrast */
+  --brand-subtle: #3a2b21;
+  --ai: #a99cf0;
+  --ai-subtle: #2d2945;
+
+  --success: #6cc68f;
+  --success-subtle: #1e3327;
+  --warning: #e3a55c;
+  --warning-subtle: #3a2c1b;
+  --danger: #f08a80;
+  --danger-subtle: #3d2220;
+  --info: #8fb2f0;
+  --info-subtle: #1f2a3d;
+  --neutral: #b6b2ad;
+  --neutral-subtle: #2f3236;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 28px -14px rgb(0 0 0 / 0.6);
+  --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.35), 0 22px 48px -20px rgb(0 0 0 / 0.75);
+  --shadow-overlay: 0 8px 24px -6px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+}

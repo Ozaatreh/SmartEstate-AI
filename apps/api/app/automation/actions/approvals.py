@@ -41,6 +41,7 @@ class RemindIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     remind_after_hours: float = Field(gt=0)
+    entity_type: str | None = None  # limit to one document type (e.g. marketing_content); all types when empty
 
 
 @action(
@@ -52,7 +53,7 @@ class RemindIn(BaseModel):
 def send_reminders(ctx: ActionContext, data: RemindIn) -> dict:
     svc = ApprovalService(ctx.session)
     day = datetime.now(UTC).strftime("%Y-%m-%d")
-    steps = svc.overdue_steps(data.remind_after_hours)
+    steps = svc.overdue_steps(data.remind_after_hours, entity_type=data.entity_type)
     reminded = [{"code": s.request.entity_code, "step": s.label, "recipients": svc.remind(s, day_key=day)} for s in steps]
     ctx.log.info(f"{len(reminded)} overdue step(s) reminded")
     return {"overdue_steps": len(reminded), "reminders": reminded}

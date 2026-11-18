@@ -244,7 +244,7 @@ action (one service call). For example, "approve PO + write commitment" is one s
 | `crm.follow_up_sla` (Phase 5) | schedule 15 min | action `crm.escalate_overdue`: open leads past `next_follow_up_at` → notify holders of `crm.leads.manage` + remind the owner (deduped per lead per day via activity / notification dedupe keys) | M |
 | `crm.reservation_expiry` (Phase 5) | schedule 15 min | action `crm.expire_reservations`: `FOR UPDATE SKIP LOCKED` on still-active reservations past `expires_at` → expire + release the unit in the same transaction → notify the lead owner; converted/cancelled rows are never touched | S |
 | `hr.leave_routing` | `leave_request.submitted` | open approval (department manager) → notify | S |
-| `marketing.content_review` | `marketing_content.submitted` | open approval (marketing manager) → notify | S |
+| `marketing.content_review` (**built in 7B**) | `marketing_content.submitted` + schedule 15 min | the approval is opened **in the submit transaction**; the workflow verifies the route (an eligible marketing approver who isn't an author) and reminds approvers of content waiting too long (`approvals.send_reminders` scoped to `marketing_content`). Never decides, never publishes | S |
 | `dashboard.daily_digest` | schedule daily | compute KPIs → AI narrative (advisory) → notify executives | C |
 
 ## 12. Migration to a Dynamic Workflow Engine (future)

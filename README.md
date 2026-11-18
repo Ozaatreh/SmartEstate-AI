@@ -3,9 +3,96 @@
 AI-powered real estate business platform: internal operations, process automation, CRM and
 marketing, in one modular monolith. **Prototype.** NOVA Residences, Riyadh, and all demo data are fictional.
 
-**Status: Phase 5 (real estate inventory, CRM pipeline, reservations and CRM workflows) complete.**
+**Status: Phase 6 complete** — AI gateway (6A), AI lead summaries (6B), tool registry, BI agent and public property assistant (6C).
 See [docs/](docs/) for the specification, architecture, database design, automation engine, UI/UX
 design system and plan.
+
+### AI gateway (Phase 6A)
+
+All Claude API traffic goes through `app/ai/gateway.py`; only `app/ai/provider.py` imports the official `anthropic` SDK.
+AI is **off by default** and its availability never affects startup or the rest of the app.
+
+| Variable | Purpose |
+|---|---|
+| `AI_ENABLED` | Kill switch (`false` by default) |
+| `ANTHROPIC_API_KEY` | Backend-only secret; never logged, returned or stored |
+| `AI_DEFAULT_MODEL` | Default model for every capability |
+| `AI_MODEL_<CAPABILITY>` / `AI_EFFORT_<CAPABILITY>` | Optional per-capability overrides |
+| `AI_REQUEST_TIMEOUT_SECONDS`, `AI_MAX_RETRIES`, `AI_MAX_OUTPUT_TOKENS`, `AI_DAILY_COST_CAP_USD` | Limits (invalid values disable AI, not the app) |
+
+`GET /ai/status` (any signed-in user) reports `disabled | misconfigured | unverified | operational | degraded`.
+`GET /ai/gateway`, `GET /ai/usage` and `POST /ai/health-check` need `ai.gateway.manage` (Super Admin by default).
+With a key configured, `.venv/Scripts/python -m app.ai.smoke` runs a real check (a few tokens) through the gateway.
+
+### Marketing Studio (Phase 7B)
+
+Dashboard → **Marketing** (`/marketing/campaigns`, `/marketing/content`). A **Marketing Specialist** creates campaigns
+(project, channels, dates, status), writes English/Arabic content per channel (Arabic renders right-to-left in IBM Plex
+Sans Arabic), edits drafts (every save is a version), and submits for review. A **Marketing Manager** approves or
+requests changes through the shared approval engine (Approvals inbox or the content page). Nobody can approve content
+they wrote, edited or submitted. Rejected content is revised and resubmitted; approved content is never published
+automatically. The editor shows live project facts and flags prices, percentages and bedroom counts that don't match
+them. AI drafting is off (`AI_MARKETING_STUDIO_ENABLED=false`).
+Demo specialist account (development only, insert-only): `.venv/Scripts/python -m app.seed.demo_marketing`.
+
+### Brochures & posters (Phase 7C)
+
+Dashboard → **Marketing → Brochures & posters** (`/marketing/collateral`, permission `marketing.collateral.generate`:
+Marketing Manager and Marketing Specialist). Pick a published project and English/Arabic, then download an **A4 brochure
+(PDF)** or a **social poster (PNG)** — Instagram post 1080×1080, Instagram story 1080×1920, LinkedIn 1200×627,
+Facebook 1200×630, in three layouts. Every figure is read from the database when the file is generated, and the page is
+scanned before export: any number that isn't a project fact stops the download. Missing data is left out. Payment plans
+appear only when classified **Cleared for marketing** (Real estate → plan → Marketing use). Nothing is published.
+Rendering uses headless Chromium — install once: `cd apps/api && .venv/Scripts/python -m playwright install --only-shell chromium`.
+Images: see [docs/MARKETING_ASSETS.md](docs/MARKETING_ASSETS.md) (no approved images yet → neutral placeholder).
+
+### Maps (Phase 7D)
+
+Each public project page has a **Location** section. With a *verified* location (Real estate → project → Edit →
+Location) it shows Get directions / Open in Google Maps links (no key needed) and, when
+`VITE_GOOGLE_MAPS_API_KEY` is set in `apps/marketing/.env.local`, an interactive Google map (Maps JavaScript API) with a
+Map / Street View switch (Street View needs a billed key). Otherwise it shows the
+district/city only. Fictional demo projects (NOVA) are never pinned. Setup and rules: [docs/MAPS.md](docs/MAPS.md).
+
+### 3D property models (Phase 7E)
+
+Dashboard → Real estate → project → **3D models**: add a model, upload a `.glb` or self-contained `.gltf` (validated on
+the server, 50 MB max), record its source and licence, approve it. Approved models of published projects (and public
+units) appear on the website in an interactive three.js viewer (orbit, zoom, reset). No models exist yet — none were
+supplied, and none are generated. See [docs/3D_MODELS.md](docs/3D_MODELS.md).
+
+### Two applications, one backend (Phase 7A)
+
+| App | Folder | Dev URL | Audience |
+|---|---|---|---|
+| Marketing website | `apps/marketing` | http://localhost:5173 | Public: projects, units, payment plans, contact / viewing requests, AI property assistant |
+| Internal dashboard | `apps/dashboard` | http://localhost:5174 | Staff (sign-in): CRM, finance, procurement, approvals, BI agent… |
+| API (shared) | `apps/api` | http://localhost:8000 | Both apps; PostgreSQL on 127.0.0.1:5434 (project-local cluster) |
+
+- **Public API** (`/api/v1/public/*`, no sign-in, `app/public/`): published projects, public units and payment plans,
+  inquiry form token, inquiries, and the property assistant. Responses use dedicated public schemas (explicit field
+  allowlists). A project appears only when **Published** is ticked in the dashboard (`re_projects.is_published`).
+- **Internal API**: every other endpoint requires a signed-in user. `tests/test_public_api.py` checks this over the
+  whole route table, independently of either frontend.
+- **Inquiries → CRM:** server-side validation, honeypot + signed form token (minimum fill time), rate limits per IP and
+  per contact, then — under one PostgreSQL advisory lock — either a new `website` lead (scored and assigned by the
+  existing lead workflow) or a timeline entry on a matching open lead from the last 24 h. Same response either way.
+- **Marketing AI** stays off: `AI_MARKETING_STUDIO_ENABLED=false` (separate from `AI_ENABLED`).
+
+### BI agent and property assistant (Phase 6C)
+
+- **BI agent** (`/intelligence/bi-agent`, permission `ai.bi_agent.use`, granted to Executive): a streamed chat over six
+  read-only tools — budget positions, approvals backlog, purchase orders, lead funnel, unit inventory, workflow failures.
+  Each tool also needs its module permission, checked under the signed-in user; refused tools are shown as such.
+  Answers list the tools used. Conversations are private to their owner. API: `GET /ai/bi/conversations`,
+  `GET /ai/bi/conversations/{id}`, `POST /ai/bi/messages` (server-sent events).
+- **Property assistant** (`/assistant`, public, no sign-in): searches available public units and explains payment plans and
+  projects (public fields only). With the visitor's consent checkbox and the details they typed, it registers a
+  `property_assistant` lead, which then runs the normal lead workflow. Rate-limited per IP and per visitor cookie, with a
+  per-conversation message cap. API: `GET /public/assistant/status`, `POST /public/assistant/messages` (SSE).
+- **Tool registry** (`app/ai/tools/`): strict Pydantic inputs (unknown fields rejected), audience (internal/public),
+  permission checks, one `ai_tool_calls` row per request (contact fields redacted). No tool approves, posts, pays or
+  changes financial data. Max 8 tool calls per question.
 
 ### Real estate & CRM (Phase 5)
 
@@ -64,9 +151,15 @@ python -m venv .venv
 ```
 
 ```bash
-cd apps/web
+cd apps/dashboard                                     # internal system (staff sign-in)
 npm install
-npm run dev                                           # http://localhost:5173 (proxies /api → :8000)
+npm run dev                                           # http://localhost:5174 (proxies /api → :8000)
+```
+
+```bash
+cd apps/marketing                                     # public website (no sign-in)
+npm install
+npm run dev                                           # http://localhost:5173 (proxies only /api/v1/public → :8000)
 ```
 
 ### Demo accounts (development only)
@@ -100,7 +193,7 @@ npm run dev                                           # http://localhost:5173 (p
 - **Notifications:** in-app, private per user, idempotent via `dedupe_key`.
 - **AI startup resilience:** AI settings are never fatal. `app/ai/status.py` turns them into
   `enabled | disabled | misconfigured` with a reason (see `GET /api/v1/health`); everything else keeps working.
-- **Design system** (`apps/web/src`): tokens in `styles/tokens.css`; themed primitives in `components/ui`; system
+- **Design system** (`apps/dashboard/src`; the marketing site copies `styles/tokens.css`): tokens in `styles/tokens.css`; themed primitives in `components/ui`; system
   components in `components/system` (PageHeader, Panel, DataTable, StatusBadge, KpiCard, ChartCard,
   FormField, ConfirmDialog, Empty/Error/Permission/Loading states, MoneyText, Meter, AiBadge); app shell with
   a collapsible sidebar (`[` toggles), tablet icon rail and mobile sheet. The reference page is at `/_design` (Super Admin).
@@ -157,6 +250,6 @@ cd apps/api
 .venv/Scripts/ruff check app tests alembic
 .venv/Scripts/alembic check             # models and migrations in sync
 
-cd apps/web
+cd apps/dashboard   # and the same in apps/marketing
 npm test && npm run typecheck && npm run lint && npm run build
 ```

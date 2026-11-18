@@ -3,10 +3,12 @@ from __future__ import annotations
 import uuid
 from typing import Literal
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 
+from app.ai.router import get_gateway
 from app.api.deps import CurrentPrincipal, SessionDep
 from app.common.listing import ListParams, Page, list_params
+from app.modules.crm.lead_summary import LeadSummaryOut, LeadSummaryService
 from app.modules.crm.reservations import ReservationService
 from app.modules.crm.schemas import (
     ActivityIn,
@@ -94,6 +96,13 @@ def add_activity(lead_id: uuid.UUID, body: ActivityIn, principal: CurrentPrincip
     svc = CRMService(session)
     svc.add_activity(principal, lead_id, body)
     return svc.timeline(principal, lead_id)
+
+
+@router.post("/leads/{lead_id}/ai-summary", response_model=LeadSummaryOut)
+def lead_ai_summary(lead_id: uuid.UUID, request: Request, principal: CurrentPrincipal, session: SessionDep) -> LeadSummaryOut:
+    """Advisory AI briefing for one lead (generated on demand, not stored). Owner with crm.leads.work or crm.leads.manage.
+    503 with an ``ai_*`` code when AI is unavailable; the rest of the CRM is unaffected."""
+    return LeadSummaryService(session, get_gateway(request)).generate(principal, lead_id)
 
 
 @router.get("/sales-users", response_model=list[dict])

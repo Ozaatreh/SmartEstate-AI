@@ -8,10 +8,16 @@
       "port": 8000
     },
     {
-      "name": "smartestate-web",
+      "name": "smartestate-marketing",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "apps/web", "run", "dev"],
+      "runtimeArgs": ["--prefix", "apps/marketing", "run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "smartestate-dashboard",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "apps/dashboard", "run", "dev"],
+      "port": 5174
     }
   ]
 }

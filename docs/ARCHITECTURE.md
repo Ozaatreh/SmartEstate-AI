@@ -23,7 +23,9 @@
                                                     └─────────────┘          └─────────────────┘
 ```
 
-- **Two deployables, one repository:** `apps/web` (Vite-built SPA) and `apps/api` (FastAPI).
+- **Three deployables, one repository (Phase 7A):** `apps/marketing` (public website, Vite SPA), `apps/dashboard`
+  (internal system, Vite SPA) and `apps/api` (FastAPI, shared by both). The marketing app reaches only
+  `/api/v1/public/*`; the API enforces the boundary itself (public schemas; every other route needs a session).
 - **One backend process** serves the API and runs the automation worker as a background task
   started in FastAPI's lifespan. There is no broker. PostgreSQL is the queue (see § 6).
 - The frontend never calls Anthropic. All AI goes through the backend AI Gateway.
@@ -220,6 +222,32 @@ ai/
   prompts/*.md      byte-stable system prompts (good for prompt caching)
 ```
 
+**As built (Phase 6A).** The gateway is split by responsibility, and only one file imports the SDK (enforced by
+`tests/test_unit_ai.py`):
+
+```
+ai/
+  config.py      capabilities → ModelProfile (model, effort, max_tokens); limits; price table — the only place
+                 model IDs appear in app/
+  provider.py    the ONLY importer of `anthropic`: one Messages request (adaptive thinking, explicit effort,
+                 server-side refusal fallback on current models, structured output via `beta.messages.parse`),
+                 response-shape validation, SDK exception → AIError category; no tools, no DB access
+  gateway.py     AIGateway: kill switch, input validation, daily cost cap (fail-closed), stop-reason handling,
+                 usage tracking, availability (disabled | misconfigured | unverified | operational | degraded)
+  errors.py      AIError categories → 503 + safe code/message (never provider bodies, prompts or keys)
+  models.py / repository.py   `ai_usage` (append-only, metadata only)
+  router.py      GET /ai/status · GET /ai/gateway · GET /ai/usage · POST /ai/health-check
+  smoke.py       opt-in real-API smoke test (`python -m app.ai.smoke`)
+```
+
+**As built (Phase 6C).** `provider.py` also streams a tool-using turn (`stream_turn`: strict tools, `eager_input_streaming`,
+adaptive thinking, refusal fallback) but never runs a tool. `gateway.stream_turn` applies the same kill switch, cost cap,
+refusal handling and usage row per model call. `tools/registry.py` validates, permission-checks, runs and records tools;
+`tools/internal.py` (BI, read-only) and `tools/public.py` (visitor, public fields + consent-gated lead capture).
+`chat.py` is the shared streamed tool loop (≤ 8 tool calls per question; a turn is stored only when complete).
+`features/bi_agent.py` (`/ai/bi/*`) and `features/property_assistant.py` (`/public/assistant/*`) stream server-sent events
+(`start · text · tool · done | error`). Prompts are inline constants rather than `prompts/*.md`.
+
 ### 7.2 Request shape (by feature)
 | Feature | Pattern | Notes |
 |---|---|---|
@@ -252,10 +280,11 @@ ai/
   (`ai.features.marketing.generate(...)`), and only `ai/gateway.py` reads the profile and calls the SDK.
   Changing a model, or giving one agent a different model, is an `.env` change with no code change.
 - **No hard-coded model IDs:** a unit test fails if the string `claude-` appears in `app/` outside
-  `ai/config.py` defaults or in `apps/web` at all.
-- **Startup check:** when `AI_ENABLED=true`, the gateway looks up each configured model once
-  through the Models API (`client.models.retrieve`) and logs a clear error if an ID is unknown. The AI
-  features are then disabled, and the rest of the app still starts.
+  `ai/config.py` defaults or in `apps/dashboard` / `apps/marketing` at all.
+- **Model check (as built, Phase 6A):** startup makes **no** network call (a provider outage must never affect startup).
+  The token-free check — `client.models.retrieve` for each configured model — runs on demand through
+  `POST /ai/health-check` (permission `ai.gateway.manage`) or `python -m app.ai.smoke`. A valid configuration is reported as
+  `unverified` until a real request or check succeeds; availability is derived from the latest outcome in `ai_usage`.
 - **Opus 5.5 specifics to respect:** thinking cannot be disabled (adaptive is always on; depth is set
   by `effort`, which defaults to `medium`, so set it explicitly); forced `tool_choice`
   (`any`/`tool`) returns 400; the server-side refusal fallback is enabled; thinking blocks are passed back

@@ -12,7 +12,7 @@ router = APIRouter(tags=["health"])
 
 
 class AIHealth(BaseModel):
-    state: Literal["enabled", "disabled", "misconfigured"]
+    state: Literal["disabled", "misconfigured", "unverified", "operational", "degraded"]
     reason: str
 
 
@@ -31,7 +31,7 @@ def health(request: Request, session: SessionDep, settings: SettingsDep) -> Heal
         db = "ok"
     except Exception:
         db = "unavailable"
-    ai = request.app.state.ai_status
+    ai = request.app.state.ai_gateway.availability()  # configuration + last real outcome; never raises, no network call
     return HealthOut(
         status="ok" if db == "ok" else "degraded",
         version=settings.app_version,

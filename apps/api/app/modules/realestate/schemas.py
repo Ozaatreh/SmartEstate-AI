@@ -12,6 +12,7 @@ ProjectStatus = Literal["planning", "launched", "under_construction", "completed
 UnitType = Literal["studio", "apartment", "duplex", "penthouse", "townhouse"]
 UnitStatus = Literal["available", "reserved", "sold", "blocked"]
 Frequency = Literal["monthly", "quarterly", "semi_annual", "annual"]
+MarketingStatus = Literal["unreviewed", "cleared", "excluded"]
 CODE = r"^[A-Za-z0-9][A-Za-z0-9\-]*$"
 
 
@@ -22,12 +23,39 @@ def clean_amenities(values: list[str]) -> list[str]:
     return list(dict.fromkeys(out))
 
 
+LOCAL_MEDIA_FILE = r"^[A-Za-z0-9][A-Za-z0-9_\-]*(/[A-Za-z0-9][A-Za-z0-9_\-.]*)*\.(jpg|jpeg|png|webp)$"
+
+
 class MediaItem(BaseModel):
+    """A project media entry: either a web link (``url``) or an uploaded image (``file`` under COLLATERAL_MEDIA_DIR,
+    see docs/MARKETING_ASSETS.md). An uploaded image is used by brochures/posters and shown on the website only once
+    approved with its source and licence; its file path is never exposed by the public API."""
+
     model_config = ConfigDict(extra="forbid")
 
-    url: HttpUrl
+    url: HttpUrl | None = None
+    file: str | None = Field(default=None, max_length=200, pattern=LOCAL_MEDIA_FILE)
     caption: str | None = Field(default=None, max_length=150)
     kind: Literal["image", "video", "brochure", "tour"] = "image"
+    approved: bool | None = None
+    source: str | None = Field(default=None, max_length=150)
+    licence: str | None = Field(default=None, max_length=150)
+
+    @model_validator(mode="after")
+    def _one_target(self) -> MediaItem:
+        if (self.url is None) == (self.file is None):
+            raise ValueError("Each media item needs either a web link or a local file, not both.")
+        if self.file is not None and self.kind != "image":
+            raise ValueError("Local media files must be images.")
+        if self.file is not None and ".." in self.file.split("/"):
+            raise ValueError("Invalid local file path.")
+        if self.approved and not ((self.source or "").strip() and (self.licence or "").strip()):
+            raise ValueError("An approved image needs its source and licence.")
+        return self
+
+    def stored(self) -> dict:
+        """JSON stored on the project: only the fields that are set, so existing entries round-trip unchanged."""
+        return self.model_dump(mode="json", exclude_none=True)
 
 
 # --- projects -------------------------------------------------------------------------------------
@@ -52,6 +80,18 @@ class ProjectIn(BaseModel):
     handover_date: date | None = None
     amenities: list[str] = Field(default_factory=list, max_length=40)
     media: list[MediaItem] = Field(default_factory=list, max_length=30)
+    is_published: bool = False
+    # Phase 7D location (optional). Coordinates must come as a pair; "verified" needs coordinates.
+    address: str | None = Field(default=None, max_length=250)
+    country: str | None = Field(default=None, max_length=80)
+    latitude: Decimal | None = Field(default=None, ge=-90, le=90, decimal_places=6)
+    longitude: Decimal | None = Field(default=None, ge=-180, le=180, decimal_places=6)
+    location_verified: bool = False
+    # Illustrative map point (optional): a labelled reference place, never the property's address.
+    illustrative_label: str | None = Field(default=None, max_length=120)
+    illustrative_latitude: Decimal | None = Field(default=None, ge=-90, le=90, decimal_places=6)
+    illustrative_longitude: Decimal | None = Field(default=None, ge=-180, le=180, decimal_places=6)
+    illustrative_source: str | None = Field(default=None, max_length=250)
 
     @field_validator("amenities")
     @classmethod
@@ -77,6 +117,16 @@ class ProjectUpdate(BaseModel):
     handover_date: date | None = None
     amenities: list[str] | None = Field(default=None, max_length=40)
     media: list[MediaItem] | None = Field(default=None, max_length=30)
+    is_published: bool | None = None
+    address: str | None = Field(default=None, max_length=250)
+    country: str | None = Field(default=None, max_length=80)
+    latitude: Decimal | None = Field(default=None, ge=-90, le=90, decimal_places=6)
+    longitude: Decimal | None = Field(default=None, ge=-180, le=180, decimal_places=6)
+    location_verified: bool | None = None
+    illustrative_label: str | None = Field(default=None, max_length=120)
+    illustrative_latitude: Decimal | None = Field(default=None, ge=-90, le=90, decimal_places=6)
+    illustrative_longitude: Decimal | None = Field(default=None, ge=-180, le=180, decimal_places=6)
+    illustrative_source: str | None = Field(default=None, max_length=250)
 
     @field_validator("amenities")
     @classmethod
@@ -99,6 +149,7 @@ class ProjectOut(ProjectRef):
     launch_date: date | None
     handover_date: date | None
     is_demo_data: bool
+    is_published: bool
     building_count: int
     units: StatusCounts
     price_from: Decimal | None
@@ -130,6 +181,7 @@ class PaymentPlanOut(BaseModel):
     description: str | None
     is_active: bool
     is_demo_data: bool
+    marketing_status: MarketingStatus
 
 
 class ProjectDetail(ProjectOut):
@@ -138,6 +190,17 @@ class ProjectDetail(ProjectOut):
     media: list[dict]
     buildings: list[BuildingOut]
     payment_plans: list[PaymentPlanOut]
+    address: str | None
+    country: str | None
+    latitude: Decimal | None
+    longitude: Decimal | None
+    location_verified: bool
+    location_verified_at: datetime | None
+    location_verified_by: str | None  # full name
+    illustrative_label: str | None
+    illustrative_latitude: Decimal | None
+    illustrative_longitude: Decimal | None
+    illustrative_source: str | None
     can_manage: bool
     created_at: datetime
 
@@ -169,6 +232,7 @@ class PaymentPlanIn(BaseModel):
     handover_pct: Decimal = Field(default=Decimal("0"), ge=0, le=100, decimal_places=2)
     description: str | None = Field(default=None, max_length=1000)
     is_active: bool = True
+    marketing_status: MarketingStatus = "unreviewed"
 
     @model_validator(mode="after")
     def _shares(self) -> PaymentPlanIn:
@@ -189,6 +253,7 @@ class PaymentPlanUpdate(BaseModel):
     handover_pct: Decimal | None = Field(default=None, ge=0, le=100, decimal_places=2)
     description: str | None = Field(default=None, max_length=1000)
     is_active: bool | None = None
+    marketing_status: MarketingStatus | None = None
 
 
 class PlanBreakdown(BaseModel):

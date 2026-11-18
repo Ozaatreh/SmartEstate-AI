@@ -5,7 +5,7 @@
 - Inserts only what is missing, matched by natural keys (project code; building code; building + unit number;
   project + plan name). Existing rows — including anything a user created or edited — are never updated or deleted.
 - Every row it creates carries ``is_demo_data = true``. NOVA Residences, its towers, units, prices and payment plans are
-  fictional; media links point at the reserved ``example.com`` domain.
+  fictional. It has no media links (brochures are generated in Marketing → Brochures & posters).
 - Development / test only: refuses to run in staging or production.
 """
 
@@ -40,10 +40,7 @@ PROJECT = {
         "24/7 security",
         "Residents' lounge",
     ],
-    "media": [
-        {"url": "https://example.com/nova/brochure.pdf", "caption": "Project brochure (illustrative placeholder)", "kind": "brochure"},
-        {"url": "https://example.com/nova/tour", "caption": "Virtual tour (illustrative placeholder)", "kind": "tour"},
-    ],
+    "media": [],  # no placeholder links: there is no real brochure or tour for a fictional project
 }
 BUILDINGS = (("A", "Tower A — Garden", 6), ("B", "Tower B — Park", 5))
 # building, unit, type, bedrooms, bathrooms, floor, area m², view, list price (SAR, fictional)
@@ -130,7 +127,7 @@ def seed_demo_realestate(session: Session) -> dict[str, int]:
         created["units"] += 1
     for plan in PLANS:
         if repo.plan_by_name(project.id, str(plan["name"])) is None:
-            session.add(RePaymentPlan(project_id=project.id, is_demo_data=True, **plan))
+            session.add(RePaymentPlan(project_id=project.id, is_demo_data=True, marketing_status="cleared", **plan))
             created["payment_plans"] += 1
     session.flush()
     return created

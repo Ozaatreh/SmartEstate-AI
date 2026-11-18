@@ -110,9 +110,12 @@ def test_app_starts_with_broken_ai_config():
 
 
 def test_no_hardcoded_model_ids_in_app_code():
-    """Model IDs live only in configuration (.env / .env.example), never in application code."""
+    """Model IDs live in configuration (.env) and app/ai/config.py (price table / capability sets) — nowhere else."""
     app_dir = Path(__file__).resolve().parents[1] / "app"
-    offenders = [p for p in app_dir.rglob("*.py") if "claude-opus" in p.read_text(encoding="utf-8") or "claude-sonnet" in p.read_text(encoding="utf-8") or "claude-haiku" in p.read_text(encoding="utf-8")]
+    offenders = [
+        p for p in app_dir.rglob("*.py")
+        if p != app_dir / "ai" / "config.py" and any(m in p.read_text(encoding="utf-8") for m in ("claude-opus", "claude-sonnet", "claude-haiku"))
+    ]
     assert offenders == []
 
 
