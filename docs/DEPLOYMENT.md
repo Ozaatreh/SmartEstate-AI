@@ -45,8 +45,9 @@ free instance sleeps, the worker sleeps too. Jobs are not lost — they stay in 
 ## Steps (owner)
 
 1. **GitHub** — push the repository to a **private** repo. Render and Cloudflare get read access via their GitHub apps.
-2. **Neon** — create a project (region: Frankfurt), set max autoscaling to 0.25 CU, copy the **pooled** connection
-   string and use the psycopg scheme: `postgresql+psycopg://USER:PASSWORD@HOST/neondb?sslmode=require`.
+2. **Neon** — create a project, set autoscaling to a fixed 0.25 CU, and copy the **pooled** connection string as-is
+   (`postgresql://…?sslmode=require` is accepted and mapped to the psycopg driver). Deploy Render in the same region
+   (this deployment: AWS US East 2 / Render "ohio").
 3. **Render** — New → Blueprint → the repo → `render.yaml` (Free plan). Enter `DATABASE_URL` and
    `SEED_DEMO_PASSWORD` (≥ 12 characters, shared privately with evaluators). Leave `ANTHROPIC_API_KEY` empty and
    `AI_ENABLED=false` unless a key is deliberately added (cost cap `AI_DAILY_COST_CAP_USD=1`). Wait for

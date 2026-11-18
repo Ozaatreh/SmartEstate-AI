@@ -12,7 +12,7 @@ services:
     name: smartestate-api
     runtime: docker
     plan: free
-    region: frankfurt
+    region: ohio # same AWS region as the Neon database (US East 2)
     dockerContext: ./apps/api
     dockerfilePath: ./apps/api/Dockerfile
     healthCheckPath: /api/v1/health

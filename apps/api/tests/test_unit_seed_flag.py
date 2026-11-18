@@ -20,3 +20,9 @@ def test_demo_data_only_in_dev_or_flagged_staging():
 def test_production_refuses_the_demo_flag():
     with pytest.raises(ValidationError, match="SEED_DEMO_DATA"):
         Settings(app_env="production", seed_demo_data=True, **BASE)
+
+
+@pytest.mark.parametrize("url", ["postgresql://u:p@h/db?sslmode=require", "postgres://u:p@h/db?sslmode=require"])
+def test_standard_postgres_urls_use_the_psycopg_driver(url):
+    settings = Settings(**{**BASE, "database_url": url})
+    assert settings.database_url == "postgresql+psycopg://u:p@h/db?sslmode=require"

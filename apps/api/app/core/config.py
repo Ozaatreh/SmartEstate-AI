@@ -75,6 +75,17 @@ class Settings(BaseSettings):
     model_storage_dir: str = "var/models"  # relative to apps/api; never exposed
     model_max_upload_mb: int = 50
 
+    @field_validator("database_url", "test_database_url", mode="before")
+    @classmethod
+    def _psycopg_driver(cls, v: object) -> object:
+        """Accept the standard ``postgresql://`` / ``postgres://`` URLs that hosts hand out (e.g. Neon) and use the
+        installed psycopg 3 driver for them."""
+        if isinstance(v, str):
+            for prefix in ("postgresql://", "postgres://"):
+                if v.startswith(prefix):
+                    return "postgresql+psycopg://" + v[len(prefix) :]
+        return v
+
     @field_validator("cookie_secure", mode="before")
     @classmethod
     def _blank_is_auto(cls, v: object) -> object:
